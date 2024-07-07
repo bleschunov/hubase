@@ -1,14 +1,27 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
+from starlette.middleware.cors import CORSMiddleware
 from starlette.staticfiles import StaticFiles
 
-from src.main import get_names_and_positions_csv
-from src.settings import settings
+from main import get_names_and_positions_csv
+from settings import settings
 
 app = FastAPI()
 
+origins = [
+    "http://localhost:5173",
+]
 
-app.mount("/results", StaticFiles(directory="results"), name="results")
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+app.mount("/results", StaticFiles(directory="../results"), name="results")
 
 
 class CsvOptions(BaseModel):

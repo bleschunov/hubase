@@ -1,21 +1,19 @@
 import abc
 import copy
 import csv
-import logging
-import json
 import datetime as dt
+import json
+import logging
 from http.client import HTTPException
 
+import requests
+from googlesearch import search
 from mistralai.client import MistralClient
 from mistralai.exceptions import MistralAPIException
 from mistralai.models.chat_completion import ChatMessage
-
-import requests
-
-from googlesearch import search
 from tenacity import stop_after_attempt, retry, wait_exponential
 
-from src.settings import settings
+from settings import settings
 
 company_name = '"{}"'
 site = 'site:{}'
@@ -237,7 +235,7 @@ def export_to_csv(writer: csv.DictWriter, data: list[dict]):
 
 def get_names_and_positions_csv(companies: list[str], sites: list[str]) -> str:
     download_link = f"result-{dt.datetime.now().strftime('%m%d%Y-%H%M%S')}.csv"
-    with open(f"./results/{download_link}", mode='a+') as fd:
+    with open(f"../results/{download_link}", mode='a+') as fd:
         fieldnames = ["name", "position", "searched_company", "inferenced_company", "link", "source"]
         writer = csv.DictWriter(fd, fieldnames=fieldnames)
         writer.writeheader()

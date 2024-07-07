@@ -1,6 +1,6 @@
 import uvicorn
 
-from hubase.src.api import app
-from hubase.src.settings import settings
+from api import app
+from settings import settings
 
 uvicorn.run(app, host=settings.host, port=settings.port)
