@@ -1,7 +1,6 @@
 import abc
 import copy
 import csv
-import os
 import logging
 import json
 import datetime as dt
@@ -14,8 +13,9 @@ from mistralai.models.chat_completion import ChatMessage
 import requests
 
 from googlesearch import search
-from requests import Response
 from tenacity import stop_after_attempt, retry, wait_exponential
+
+from src.settings import settings
 
 company_name = '"{}"'
 site = 'site:{}'
@@ -49,7 +49,7 @@ def call_huggingface_with_retry(api_url: str, headers: dict, payload: dict) -> d
     ).json()
 
     if "error" in response:
-        logging.warning("HuggingFace error.", exc_info=response["error"])
+        logging.warning(f"HuggingFace error. {response['error']}")
         raise HTTPException(response["error"])
 
     return response
@@ -68,9 +68,7 @@ class LLMClientQA(abc.ABC):
 class LLMClientQAMistral(LLMClientQA):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        if (api_key := os.environ.get("MISTRAL_API_KEY")) is None:
-            raise ValueError("MISTRAL_API_KEY is mandatory in env!")
-        self.__client = MistralClient(api_key=api_key)
+        self.__client = MistralClient(api_key=settings.mistral_api_key)
         self.__model = "mistral-large-latest"
 
     def ask(self, *params: str) -> str:
@@ -89,10 +87,8 @@ class LLMClientQAMistral(LLMClientQA):
 class LLMClientQANer(LLMClientQA):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        if (api_token := os.environ.get("HUGGING_FACE_TOKEN")) is None:
-            raise ValueError("HUGGING_FACE_TOKEN is mandatory in env!")
         self.__api_url = "https://api-inference.huggingface.co/models/AlexKay/xlm-roberta-large-qa-multilingual-finedtuned-ru"
-        self.__headers = {"Authorization": f"Bearer {api_token}"}
+        self.__headers = {"Authorization": f"Bearer {settings.hugging_face_token}"}
         self.__payload = {"inputs": {"context": self._context}}
 
     def ask(self, *params: str) -> str:
@@ -115,9 +111,9 @@ class LLMClientQANer(LLMClientQA):
         return payload
 
 
-def get_url(company: str, site: str | None = None) -> str:
+def get_url(company: str, site: str) -> str:
     logging.info(f"Поиск для компании: {company}")
-    if site is not None:
+    if site != "":
         query = google_query_with_site.format(company, site)
     else:
         query = google_query.format(company)
@@ -142,9 +138,9 @@ def get_md_batches(md: str, batch_size: int) -> list[str]:
 
 
 def get_answer_mistral(company: str, md: str) -> str:
-    api_key = os.environ["MISTRAL_API_KEY"]
+    # api_key = os.environ["MISTRAL_API_KEY"]
     model = "mistral-large-latest"
-    client = MistralClient(api_key=api_key)
+    client = MistralClient(api_key=settings.mistral_api_key)
 
     response = client.chat(
         model=model,
@@ -159,8 +155,9 @@ def get_answer_mistral(company: str, md: str) -> str:
 
 def get_answer_ner(md_batches: list[str]) -> list[dict]:
     API_URL = "https://api-inference.huggingface.co/models/51la5/roberta-large-NER"
-    api_key = os.environ.get("HUGGING_FACE_TOKEN")
-    headers = {"Authorization": f"Bearer {api_key}"}
+    # if (api_key := os.environ.get("HUGGING_FACE_TOKEN")) is None:
+    #     raise ValueError("HUGGING_FACE_TOKEN is mandatory in env!")
+    headers = {"Authorization": f"Bearer {settings.hugging_face_token}"}
 
     results = []
     for i, batch in enumerate(md_batches, start=1):
@@ -238,8 +235,9 @@ def export_to_csv(writer: csv.DictWriter, data: list[dict]):
     writer.writerows(data)
 
 
-def get_names_and_positions_csv(companies: list[str], sites: list[str]):
-    with open(f"./results/result-{dt.datetime.now().strftime('%m%d%Y-%H%M%S')}.csv", mode='a+') as fd:
+def get_names_and_positions_csv(companies: list[str], sites: list[str]) -> str:
+    download_link = f"result-{dt.datetime.now().strftime('%m%d%Y-%H%M%S')}.csv"
+    with open(f"./results/{download_link}", mode='a+') as fd:
         fieldnames = ["name", "position", "searched_company", "inferenced_company", "link", "source"]
         writer = csv.DictWriter(fd, fieldnames=fieldnames)
         writer.writeheader()
@@ -267,6 +265,7 @@ def get_names_and_positions_csv(companies: list[str], sites: list[str]):
                     logging.warning(f"Не смогли найти упоминания компании {company} на cfo-russia.ru")
                 except MistralAPIException as err:
                     logging.exception(err)
+    return download_link
 
 
 def get_urls(companies: list[str], sites: list[str]):
@@ -294,7 +293,6 @@ if __name__ == "__main__":
         # "ЦДС"
     ]
     sites = [
-        # None,
         "cfo-russia.ru",
         # "companies.rbc.ru"
     ]
