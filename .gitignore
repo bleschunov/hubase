@@ -1,5 +1,4 @@
 /results/*
 !/results/.gitkeep
 venv
-.idea
-.DS_Store
+.env
