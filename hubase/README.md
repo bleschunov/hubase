@@ -1,7 +1,6 @@
 ```
 python -m venv venv
 source venv/bin/activate
-cd hubase
-pip install -q -r requirements.txt
+pip install -q -r hubase/requirements.txt
 touch .env
 ```
