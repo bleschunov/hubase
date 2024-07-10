@@ -3,4 +3,11 @@ interface CreateCsvOptions {
   sites: string[];
 }
 
-export default CreateCsvOptions
+interface CreateCsvResponseData {
+  download_link: string
+}
+
+export type {
+  CreateCsvOptions,
+  CreateCsvResponseData
+}

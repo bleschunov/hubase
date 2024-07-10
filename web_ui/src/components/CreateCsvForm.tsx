@@ -1,6 +1,7 @@
-import {Button, Link, Stack, TextField} from "@mui/material";
+import {Link, Snackbar, Stack, TextField} from "@mui/material";
+import LoadingButton from '@mui/lab/LoadingButton';
 import {Controller, SubmitHandler, useForm} from "react-hook-form";
-import CreateCsvOptions from "../models/CreateCsvOptions.ts";
+import {CreateCsvOptions, CreateCsvResponseData} from "../models/CreateCsvOptions.ts";
 import {useState} from "react";
 
 
@@ -10,19 +11,29 @@ interface IFormInput {
 }
 
 const CreateCsvForm = () => {
-  const { control, handleSubmit } = useForm({
+  const {
+    control,
+    handleSubmit,
+    formState: { isSubmitting}
+  } = useForm({
     defaultValues: {
-      companies: "",
-      sites: ""
+      companies: "Север Минералс",
+      sites: "cfo-russia.ru"
     }
   });
 
   const [csvDownloadLink, setCsvDownloadLink] = useState("")
+  const [csvName, setCsvName] = useState("")
 
-  const onSubmit: SubmitHandler<IFormInput> = async data => {
+  const [sbOpen, setSbOpen] = useState(false)
+  const [sbMessage, setSbMessage] = useState("")
+
+  const onSbClose = () => setSbOpen(false)
+
+  const onSubmit: SubmitHandler<IFormInput> = async payload_data => {
     const payload: CreateCsvOptions = {
-      companies: data.companies.split("\n"),
-      sites: data.sites.split("\n")
+      companies: payload_data.companies.split("\n"),
+      sites: payload_data.sites.split("\n")
     }
     const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/csv`, {
       method: "POST",
@@ -32,8 +43,22 @@ const CreateCsvForm = () => {
       },
       body: JSON.stringify(payload)
     })
-    const downloadLink = await response.json()
-    setCsvDownloadLink(downloadLink)
+
+    if (response.status == 403) {
+      setCsvDownloadLink("")
+      setCsvName("")
+      setSbMessage(await response.text())
+      setSbOpen(true)
+      return
+    }
+
+
+    const response_data: CreateCsvResponseData = await response.json()
+    setCsvDownloadLink(response_data.download_link)
+
+    const split = response_data.download_link.split("/")
+    const csvName = split[split.length-1]
+    setCsvName(csvName)
   };
 
   return (
@@ -68,10 +93,16 @@ const CreateCsvForm = () => {
               />
             }
           />
-          <Button variant="contained" type="submit">Отправить</Button>
+          <LoadingButton loading={isSubmitting} variant="contained" type="submit">Отправить</LoadingButton>
         </Stack>
       </form>
-      {csvDownloadLink != "" && <Link href={csvDownloadLink}>Ссылка для скачивания результата</Link>}
+      {csvDownloadLink != "" && <Link href={csvDownloadLink}>Скачать CSV: {csvName}</Link>}
+      <Snackbar
+        open={sbOpen}
+        autoHideDuration={4000}
+        onClose={onSbClose}
+        message={sbMessage}
+      />
     </Stack>
   )
 }

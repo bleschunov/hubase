@@ -4,14 +4,12 @@ import csv
 import datetime as dt
 import json
 import logging
-from http.client import HTTPException
 
 import requests
 from googlesearch import search
 from mistralai.client import MistralClient
 from mistralai.exceptions import MistralAPIException
 from mistralai.models.chat_completion import ChatMessage
-from tenacity import stop_after_attempt, retry, wait_exponential
 
 from settings import settings
 
@@ -38,8 +36,11 @@ llm_query_for_short_context = """В какой компании работает
 logging.basicConfig(level=logging.INFO)
 
 
-@retry(stop=stop_after_attempt(4), wait=wait_exponential(multiplier=1, min=4, max=30))
-def call_huggingface_with_retry(api_url: str, headers: dict, payload: dict) -> dict:
+class HuggingFaceException(Exception):
+    pass
+
+
+def call_huggingface_or_raise(api_url: str, headers: dict, payload: dict) -> dict:
     response = requests.post(
         api_url,
         headers=headers,
@@ -48,7 +49,7 @@ def call_huggingface_with_retry(api_url: str, headers: dict, payload: dict) -> d
 
     if "error" in response:
         logging.warning(f"HuggingFace error. {response['error']}")
-        raise HTTPException(response["error"])
+        raise HuggingFaceException(response['error'])
 
     return response
 
@@ -87,10 +88,10 @@ class LLMClientQANer(LLMClientQA):
         super().__init__(*args, **kwargs)
         self.__api_url = "https://api-inference.huggingface.co/models/AlexKay/xlm-roberta-large-qa-multilingual-finedtuned-ru"
         self.__headers = {"Authorization": f"Bearer {settings.hugging_face_token}"}
-        self.__payload = {"inputs": {"context": self._context}}
+        self.__payload = {"inputs": {"context": self._context}, "wait_for_model": True}
 
     def ask(self, *params: str) -> str:
-        response = call_huggingface_with_retry(
+        response = call_huggingface_or_raise(
             self.__api_url,
             self.__headers,
             self.__payload_with_question(self._template.format(*params))
@@ -153,14 +154,12 @@ def get_answer_mistral(company: str, md: str) -> str:
 
 def get_answer_ner(md_batches: list[str]) -> list[dict]:
     API_URL = "https://api-inference.huggingface.co/models/51la5/roberta-large-NER"
-    # if (api_key := os.environ.get("HUGGING_FACE_TOKEN")) is None:
-    #     raise ValueError("HUGGING_FACE_TOKEN is mandatory in env!")
     headers = {"Authorization": f"Bearer {settings.hugging_face_token}"}
 
     results = []
     for i, batch in enumerate(md_batches, start=1):
         logging.info(f"Делаем запрос в NER. Батч: {i}/{len(md_batches)}")
-        choices = call_huggingface_with_retry(API_URL, headers, {"inputs": batch})
+        choices = call_huggingface_or_raise(API_URL, headers, {"inputs": batch})
 
         for choice in choices:
             start_pos = choice["start"] - 100
@@ -263,6 +262,7 @@ def get_names_and_positions_csv(companies: list[str], sites: list[str]) -> str:
                     logging.warning(f"Не смогли найти упоминания компании {company} на cfo-russia.ru")
                 except MistralAPIException as err:
                     logging.exception(err)
+                    raise
     return download_link
 
 
