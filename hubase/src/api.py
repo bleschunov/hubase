@@ -25,6 +25,7 @@ app.add_middleware(
 
 
 app.mount("/results", StaticFiles(directory="../results"), name="results")
+app.mount("/", StaticFiles(directory="../front", html=True), name="front")
 
 
 class CsvOptions(BaseModel):
