@@ -46,4 +46,4 @@ def read_root(csv_options: CsvOptions) -> CsvDownloadLink:
         # 'Status: 403. Message: {"message":"Inactive subscription or usage limit reached"}'
         msg = json.loads("{" + err.message.split("{")[-1])
         raise HTTPException(status_code=403, detail=f"Ошибка MistralAPI: {msg['message']}")
-    return CsvDownloadLink(download_link=f"http://{settings.host}:{settings.port}/results/{download_link}")
+    return CsvDownloadLink(download_link=f"http://{settings.download_host}:{settings.port}/results/{download_link}")

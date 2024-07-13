@@ -167,6 +167,7 @@ def get_answer_ner(md_batches: list[str]) -> list[dict]:
             choice["source"] = batch[start_pos:end_pos].strip().replace("\n", " ").replace("\t", " ")
         results.extend(choices)
 
+    logging.info(f"NER классифицировал {len(results)} слов.")
     return results
 
 
@@ -205,7 +206,9 @@ def decode_json(json_data: str) -> list[dict]:
 
 
 def decode_ner(choices: list[dict], company: str, link: str) -> list[dict]:
-    ner_choices = filter(lambda x: x["entity_group"] == "PER", choices)
+    ner_choices = list(filter(lambda x: x["entity_group"] == "PER", choices))
+
+    logging.info(f"NER нашёл {len(list(ner_choices))} людей.")
 
     results = []
     for choice in ner_choices:
@@ -259,7 +262,7 @@ def get_names_and_positions_csv(companies: list[str], sites: list[str]) -> str:
                     export_to_csv(writer, answers)
                     fd.flush()
                 except StopIteration:
-                    logging.warning(f"Не смогли найти упоминания компании {company} на cfo-russia.ru")
+                    logging.warning(f"Не смогли найти упоминания компании {company} на {site}")
                 except MistralAPIException as err:
                     logging.exception(err)
                     raise
