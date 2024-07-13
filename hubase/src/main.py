@@ -159,7 +159,7 @@ def get_answer_ner(md_batches: list[str]) -> list[dict]:
     results = []
     for i, batch in enumerate(md_batches, start=1):
         logging.info(f"Делаем запрос в NER. Батч: {i}/{len(md_batches)}")
-        choices = call_huggingface_or_raise(API_URL, headers, {"inputs": batch})
+        choices = call_huggingface_or_raise(API_URL, headers, {"inputs": batch, "wait_for_model": True})
 
         for choice in choices:
             start_pos = choice["start"] - 100
