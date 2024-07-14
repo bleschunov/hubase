@@ -1,0 +1,2 @@
+class HuggingFaceException(Exception):
+    pass
