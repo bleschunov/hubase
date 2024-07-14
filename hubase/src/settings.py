@@ -9,6 +9,7 @@ class Settings(BaseSettings):
     download_host: str = Field("localhost")
     host: str = Field("localhost")
     port: int = Field(8080)
+    cors_origins: str = Field("http://localhost:5173")
 
 
 settings = Settings()

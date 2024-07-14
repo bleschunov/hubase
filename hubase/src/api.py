@@ -12,7 +12,7 @@ from settings import settings
 app = FastAPI()
 
 origins = [
-    "http://localhost:5173",
+    settings.cors_origins,
 ]
 
 app.add_middleware(
