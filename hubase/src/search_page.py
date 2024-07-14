@@ -24,7 +24,7 @@ class SearchPage:
         return self
 
     def __next__(self) -> [str, dict]:
-        if len(self.__urls) == 0:
+        while len(self.__urls) == 0:
             if len(self.__companies) == 0 and self.__current_site_i >= len(self.__sites):
                 raise StopIteration()
 
@@ -46,6 +46,7 @@ class SearchPage:
                 subqueries.append(self.site_subquery.format(site=self.__current_site))
 
             self.__query = " AND ".join(subqueries)
+
             logging.info(f"Делаем запрос: {self.__query}")
             self.__urls.extend(google.search(self.__query, stop=self.__url_limit))
 
