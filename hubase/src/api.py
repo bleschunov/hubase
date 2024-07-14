@@ -13,7 +13,6 @@ app = FastAPI()
 
 origins = [
     "http://localhost:5173",
-    "http://13.233.53.215:80",
 ]
 
 app.add_middleware(
@@ -25,8 +24,8 @@ app.add_middleware(
 )
 
 
-app.mount("/results", StaticFiles(directory="../results"), name="results")
-app.mount("/", StaticFiles(directory="../front", html=True), name="front")
+app.mount("/static/results", StaticFiles(directory="../results"), name="results")
+app.mount("/static", StaticFiles(directory="../front", html=True), name="front")
 
 
 class CsvOptions(BaseModel):

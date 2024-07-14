@@ -1,6 +1,6 @@
 /results/*
 !/results/.gitkeep
 /front/*
-!/results/.gitkeep
+!/front/.gitkeep
 venv
 .env
