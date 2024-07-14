@@ -13,9 +13,10 @@ from mistralai.models.chat_completion import ChatMessage
 
 from settings import settings
 
-company_name = '"{}"'
-site = 'site:{}'
-positions = '("директор" OR "директор ГК ССК" OR "руководитель" OR "начальник" OR "глава")'
+company_name = '"{company}"'
+site = 'site:{site}'
+# positions = '("директор" OR "директор ГК ССК" OR "руководитель" OR "начальник" OR "глава")'
+positions = '({positions})'
 google_query_with_site = " AND ".join([company_name, site, positions])
 google_query = " AND ".join([company_name, positions])
 jina_query = "https://r.jina.ai/{}"
@@ -88,7 +89,7 @@ class LLMClientQANer(LLMClientQA):
         super().__init__(*args, **kwargs)
         self.__api_url = "https://api-inference.huggingface.co/models/AlexKay/xlm-roberta-large-qa-multilingual-finedtuned-ru"
         self.__headers = {"Authorization": f"Bearer {settings.hugging_face_token}"}
-        self.__payload = {"inputs": {"context": self._context}, "wait_for_model": True}
+        self.__payload = {"inputs": {"context": self._context}, "options": {"wait_for_model": True}}
 
     def ask(self, *params: str) -> str:
         response = call_huggingface_or_raise(
@@ -110,12 +111,13 @@ class LLMClientQANer(LLMClientQA):
         return payload
 
 
-def get_url(company: str, site: str) -> str:
+def get_url(company: str, site: str, positions: list[str]) -> str:
     logging.info(f"Поиск для компании: {company}")
+    positions = " OR ".join(f'"{position}"' for position in positions)
     if site != "":
-        query = google_query_with_site.format(company, site)
+        query = google_query_with_site.format(company=company, site=site, positions=positions)
     else:
-        query = google_query.format(company)
+        query = google_query.format(company=company, positions=positions)
     logging.info(f"Делаем запрос: {query}")
     return next(search(query, stop=1))
 
@@ -159,7 +161,7 @@ def get_answer_ner(md_batches: list[str]) -> list[dict]:
     results = []
     for i, batch in enumerate(md_batches, start=1):
         logging.info(f"Делаем запрос в NER. Батч: {i}/{len(md_batches)}")
-        choices = call_huggingface_or_raise(API_URL, headers, {"inputs": batch, "wait_for_model": True})
+        choices = call_huggingface_or_raise(API_URL, headers, {"inputs": batch, "options": {"wait_for_model": True}})
 
         for choice in choices:
             start_pos = choice["start"] - 100
@@ -235,7 +237,7 @@ def export_to_csv(writer: csv.DictWriter, data: list[dict]):
     writer.writerows(data)
 
 
-def get_names_and_positions_csv(companies: list[str], sites: list[str]) -> str:
+def get_names_and_positions_csv(companies: list[str], sites: list[str], positions: list[str]) -> str:
     download_link = f"result-{dt.datetime.now().strftime('%m%d%Y-%H%M%S')}.csv"
     with open(f"../results/{download_link}", mode='a+') as fd:
         fieldnames = ["name", "position", "searched_company", "inferenced_company", "link", "source"]
@@ -245,7 +247,7 @@ def get_names_and_positions_csv(companies: list[str], sites: list[str]) -> str:
         for company in companies:
             for site in sites:
                 try:
-                    url = get_url(company, site)
+                    url = get_url(company, site, positions)
                     answers = extend_with_company_name_and_position_from_source(
                         decode_ner(
                             get_answer_ner(
@@ -282,19 +284,26 @@ def get_urls(companies: list[str], sites: list[str]):
 
 if __name__ == "__main__":
     companies = [
-        "Север Минералс",
+        # "Север Минералс",
         # "ГК GloraX",
         # "ГК Seven Suns Development",
         # "ПИК",
         # "Setl Group",
         # "ГК ТОЧНО",
         # "Федеральный девелопер «Неометрия»",
-        # "Мосстрой",
+        "Мосстрой",
         # "Capital Group",
         # "ЦДС"
     ]
     sites = [
-        "cfo-russia.ru",
+        # "cfo-russia.ru",
         # "companies.rbc.ru"
+        "sbis.ru"
     ]
-    get_names_and_positions_csv(companies, sites)
+    positions = [
+        "директор",
+        "руководитель",
+        "начальник",
+        "глава",
+    ]
+    get_names_and_positions_csv(companies, sites, positions)

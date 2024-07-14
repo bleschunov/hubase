@@ -8,6 +8,7 @@ import {useState} from "react";
 interface IFormInput {
   companies: string;
   sites: string;
+  positions: string;
 }
 
 const CreateCsvForm = () => {
@@ -17,10 +18,11 @@ const CreateCsvForm = () => {
     formState: { isSubmitting}
   } = useForm({
     defaultValues: {
-      companies: "Север Минералс",
-      sites: "cfo-russia.ru"
+      companies: "Мосстрой",
+      sites: "sbis.ru",
+      positions: "директор\nруководитель\nначальник\nглава"
     }
-  });
+  })
 
   const [csvDownloadLink, setCsvDownloadLink] = useState("")
   const [csvName, setCsvName] = useState("")
@@ -33,7 +35,8 @@ const CreateCsvForm = () => {
   const onSubmit: SubmitHandler<IFormInput> = async payload_data => {
     const payload: CreateCsvOptions = {
       companies: payload_data.companies.split("\n"),
-      sites: payload_data.sites.split("\n")
+      sites: payload_data.sites.split("\n"),
+      positions: payload_data.positions.split("\n")
     }
     const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/csv`, {
       method: "POST",
@@ -88,6 +91,20 @@ const CreateCsvForm = () => {
                 id="outlined-textarea"
                 label="Сайты для поиска"
                 placeholder="cfo-russia.ru"
+                multiline
+                rows={4}
+              />
+            }
+          />
+          <Controller
+            name="positions"
+            control={control}
+            render={({ field }) =>
+              <TextField
+                {...field}
+                id="outlined-textarea"
+                label="Должности"
+                placeholder="Директор"
                 multiline
                 rows={4}
               />

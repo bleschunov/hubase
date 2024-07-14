@@ -1,6 +1,7 @@
 interface CreateCsvOptions {
   companies: string[];
   sites: string[];
+  positions: string[];
 }
 
 interface CreateCsvResponseData {

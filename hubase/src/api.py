@@ -31,6 +31,7 @@ app.mount("/static", StaticFiles(directory="../front", html=True), name="front")
 class CsvOptions(BaseModel):
     companies: list[str]
     sites: list[str]
+    positions: list[str]
 
 
 class CsvDownloadLink(BaseModel):
@@ -40,7 +41,7 @@ class CsvDownloadLink(BaseModel):
 @app.post("/api/v1/csv")
 def read_root(csv_options: CsvOptions) -> CsvDownloadLink:
     try:
-        download_link = get_names_and_positions_csv(csv_options.companies, csv_options.sites)
+        download_link = get_names_and_positions_csv(csv_options.companies, csv_options.sites, csv_options.positions)
     except HuggingFaceException as err:
         raise HTTPException(status_code=403, detail=str(err))
     except MistralAPIException as err:
