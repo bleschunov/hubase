@@ -1,4 +1,5 @@
 import logging
+import typing as t
 
 from hubase_csv import HubaseCsv
 from hubase_md import HubaseMd
@@ -14,31 +15,56 @@ from word_classifications.word_classifications import WordClassifications
 
 logging.basicConfig(level=logging.INFO)
 
-
-def get_names_and_positions_csv(companies: list[str], sites: list[str], positions: list[str]) -> str:
-    headers = ["name", "position", "searched_company", "inferenced_company", "original_url", "source"]
-    with HubaseCsv(headers=headers, settings=settings) as csv_:
-        for url, searching_params in SearchPage(companies, positions, sites, url_limit=1):
-            company_staff = (
-                WithCompany(
+def __main(
+    companies: list[str],
+    sites: list[str],
+    positions: list[str]
+) -> t.Iterable[dict[str, str | int]]:
+    for url, searching_params in SearchPage(companies, positions, sites, url_limit=5):
+        company_staff = (
+            WithCompany(
+                LLMClientQAMistral(),
+                WithPosition(
                     LLMClientQAMistral(),
-                    WithPosition(
-                        LLMClientQAMistral(),
-                        WithSource(
-                            OnlyPeople(
-                                WordClassifications(
-                                    HubaseMd(url)
-                                )
+                    WithSource(
+                        OnlyPeople(
+                            WordClassifications(
+                                HubaseMd(url)
                             )
                         )
                     )
                 )
             )
-            for person in company_staff:
-                person["original_url"] = url
-                person["searched_company"] = searching_params["company"]
-                csv_.persist(person)
-        return csv_.download_url
+        )
+        for person in company_staff:
+            person["original_url"] = url
+            person["searched_company"] = searching_params["company"]
+            yield person
+
+
+def get_names_and_positions_csv(
+    companies: list[str],
+    sites: list[str],
+    positions: list[str]
+) -> str:
+    headers = ["name", "position", "searched_company", "inferenced_company", "original_url", "source"]
+    with HubaseCsv(headers=headers, settings=settings) as csv_:
+        for person in __main(companies, sites, positions):
+            csv_.persist(person)
+    return csv_.download_url
+
+
+def get_names_and_positions_csv_with_progress(
+    companies: list[str],
+    sites: list[str],
+    positions: list[str]
+) -> t.Iterator[dict[str, str | int] | str]:
+    headers = ["name", "position", "searched_company", "inferenced_company", "original_url", "source"]
+    with HubaseCsv(headers=headers, settings=settings) as csv_:
+        yield csv_.download_url
+        for person in __main(companies, sites, positions):
+            csv_.persist(person)
+            yield person
 
 
 if __name__ == "__main__":
