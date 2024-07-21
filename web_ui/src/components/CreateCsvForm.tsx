@@ -2,7 +2,6 @@ import {
   Box,
   Link,
   Paper,
-  Snackbar,
   Stack,
   Table, TableBody,
   TableCell,
@@ -13,8 +12,8 @@ import {
 } from "@mui/material";
 import LoadingButton from '@mui/lab/LoadingButton';
 import {Controller, SubmitHandler, useForm} from "react-hook-form";
-import {CreateCsvOptions, CreateCsvResponseData} from "../models/CreateCsvOptions.ts";
-import {useEffect, useState} from "react";
+import {CreateCsvOptions} from "../models/CreateCsvOptions.ts";
+import {useState} from "react";
 
 
 interface IFormInput {
@@ -38,7 +37,6 @@ const CreateCsvForm = () => {
   const {
     control,
     handleSubmit,
-    formState: { isSubmitting}
   } = useForm({
     defaultValues: {
       companies: "Мосстрой",
@@ -52,43 +50,12 @@ const CreateCsvForm = () => {
 
   const [rows, setRows] = useState<IRow[]>([])
 
-  const [sbOpen, setSbOpen] = useState(false)
-  const [sbMessage, setSbMessage] = useState("")
+  // const [sbOpen, setSbOpen] = useState(false)
+  // const [sbMessage, setSbMessage] = useState("")
 
   const [loading, setLoading] = useState<boolean>(false)
 
-  const onSbClose = () => setSbOpen(false)
-
-  const onSubmit: SubmitHandler<IFormInput> = async payload_data => {
-    const payload: CreateCsvOptions = {
-      companies: payload_data.companies.split("\n"),
-      sites: payload_data.sites.split("\n"),
-      positions: payload_data.positions.split("\n")
-    }
-    const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/csv`, {
-      method: "POST",
-      headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(payload)
-    })
-
-    if (response.status == 403) {
-      setCsvDownloadLink("")
-      // setCsvName("")
-      setSbMessage(await response.text())
-      setSbOpen(true)
-      return
-    }
-
-    const response_data: CreateCsvResponseData = await response.json()
-    setCsvDownloadLink(response_data.download_link)
-
-    const split = response_data.download_link.split("/")
-    const csvName = split[split.length-1]
-    setCsvName(csvName)
-  };
+  // const onSbClose = () => setSbOpen(false)
 
   const onSubmitWs: SubmitHandler<IFormInput> = async payload_data => {
     const payload: CreateCsvOptions = {
@@ -99,7 +66,7 @@ const CreateCsvForm = () => {
     const ws = new WebSocket(`${import.meta.env.VITE_API_BASE_URL_WS}/csv/progress`)
     setLoading(true)
 
-    ws.onopen = event => {
+    ws.onopen = () => {
       ws.send(JSON.stringify(payload))
     }
 
@@ -109,7 +76,7 @@ const CreateCsvForm = () => {
       setRows(prev => [row, ...prev])
     }
 
-    ws.onclose = event => {
+    ws.onclose = () => {
       setLoading(false)
     }
   };
@@ -199,12 +166,12 @@ const CreateCsvForm = () => {
           </TableBody>
         </Table>
       </TableContainer>
-      <Snackbar
-        open={sbOpen}
-        autoHideDuration={4000}
-        onClose={onSbClose}
-        message={sbMessage}
-      />
+      {/*<Snackbar*/}
+      {/*  open={sbOpen}*/}
+      {/*  autoHideDuration={4000}*/}
+      {/*  onClose={onSbClose}*/}
+      {/*  message={sbMessage}*/}
+      {/*/>*/}
     </Stack>
   )
 }
