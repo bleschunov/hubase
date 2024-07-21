@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     host: str = Field("localhost")
     port: int = Field(8080)
     cors_origins: str = Field("http://localhost:5173")
+    access_token: str
 
 
 settings = Settings()

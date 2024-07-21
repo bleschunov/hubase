@@ -61,7 +61,8 @@ const CreateCsvForm = () => {
     const payload: CreateCsvOptions = {
       companies: payload_data.companies.split("\n"),
       sites: payload_data.sites.split("\n"),
-      positions: payload_data.positions.split("\n")
+      positions: payload_data.positions.split("\n"),
+      access_token: import.meta.env.VITE_ACCESS_TOKEN,
     }
     const ws = new WebSocket(`${import.meta.env.VITE_API_BASE_URL_WS}/csv/progress`)
     setLoading(true)

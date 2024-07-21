@@ -1,4 +1,5 @@
 import json
+import logging
 import typing as t
 
 from asyncer import asyncify
@@ -33,6 +34,7 @@ class CsvOptions(BaseModel):
     companies: list[str]
     sites: list[str]
     positions: list[str]
+    access_token: str
 
 
 class CsvDownloadLink(BaseModel):
@@ -60,6 +62,13 @@ async def get_csv_with_progress(ws: WebSocket) -> None:
     await ws.accept()
 
     csv_options = CsvOptions.parse_obj(await ws.receive_json())
+
+    if csv_options.access_token != settings.access_token:
+        logging.info("Доступ запрещён.")
+        await ws.close()
+
+    logging.info("Доступ разрешён.")
+
     rows = await asyncify(get_names_and_positions_csv_with_progress)(
         companies=csv_options.companies,
         sites=csv_options.sites,
@@ -98,6 +107,12 @@ async def get_csv_with_progress(ws: WebSocket) -> None:
 
 @app.post("/api/v1/csv")
 def get_csv(csv_options: CsvOptions) -> CsvDownloadLink:
+    if csv_options.access_token != settings.access_token:
+        logging.info("Доступ запрещён.")
+        raise HTTPException(status_code=404)
+
+    logging.info("Доступ разрешён.")
+
     try:
         download_link = get_names_and_positions_csv(csv_options.companies, csv_options.sites, csv_options.positions)
     except HuggingFaceException as err:
