@@ -1,2 +1,3 @@
 cd /home/admin/hubase/hubase/src;
-sudo env "PATH=$PATH" python __main__.py;
+source ../venv/bin/activate;
+env "PATH=$PATH" python __main__.py;

@@ -5,4 +5,4 @@ cd ../hubase;
 source venv/bin/activate;
 pip install -r requirements.txt;
 cd ..;
-sudo nohup ~/hubase/start.sh >logs.log 2>&1 </dev/null &
+nohup ~/hubase/start.sh >logs.log 2>&1 </dev/null &
