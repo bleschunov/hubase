@@ -29,10 +29,6 @@ app.add_middleware(
 )
 
 
-app.mount("/static/results", StaticFiles(directory="../results"), name="results")
-app.mount("/static", StaticFiles(directory="../front", html=True), name="front")
-
-
 class CsvOptions(BaseModel):
     companies: list[str]
     sites: list[str]
@@ -111,3 +107,7 @@ def get_csv(csv_options: CsvOptions) -> CsvDownloadLink:
         msg = json.loads("{" + err.message.split("{")[-1])
         raise HTTPException(status_code=403, detail=f"Ошибка MistralAPI: {msg['message']}")
     return CsvDownloadLink(download_link=f"http://{settings.download_host}:{settings.port}/static/results/{download_link}")
+
+
+app.mount("/static/results", StaticFiles(directory="../results"), name="results")
+app.mount("/static", StaticFiles(directory="../front", html=True), name="front")
