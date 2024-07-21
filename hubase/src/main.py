@@ -2,7 +2,7 @@ import logging
 import typing as t
 
 from hubase_csv import HubaseCsv
-from hubase_md import HubaseMd
+from hubase_md import HubaseMd, JinaException
 from llm_qa.mistral import LLMClientQAMistral
 from search_page import SearchPage
 from settings import settings
@@ -15,31 +15,42 @@ from word_classifications.word_classifications import WordClassifications
 
 logging.basicConfig(level=logging.INFO)
 
-def __main(
+
+def _main(
     companies: list[str],
     sites: list[str],
     positions: list[str]
-) -> t.Iterable[dict[str, str | int]]:
+) -> t.Iterator[dict[str, str | int]]:
     for url, searching_params in SearchPage(companies, positions, sites, url_limit=5):
-        company_staff = (
-            WithCompany(
-                LLMClientQAMistral(),
-                WithPosition(
+        try:
+            md = HubaseMd(url).md
+        except JinaException as err:
+            yield {
+                "name": err,
+                "position": None,
+                "searched_company": searching_params["company"],
+                "inferenced_company": None,
+                "original_url": url,
+                "source": None,
+            }
+        else:
+            company_staff = (
+                WithCompany(
                     LLMClientQAMistral(),
-                    WithSource(
-                        OnlyPeople(
-                            WordClassifications(
-                                HubaseMd(url)
+                    WithPosition(
+                        LLMClientQAMistral(),
+                        WithSource(
+                            OnlyPeople(
+                                WordClassifications(md)
                             )
                         )
                     )
                 )
             )
-        )
-        for person in company_staff:
-            person["original_url"] = url
-            person["searched_company"] = searching_params["company"]
-            yield person
+            for person in company_staff:
+                person["original_url"] = url
+                person["searched_company"] = searching_params["company"]
+                yield person
 
 
 def get_names_and_positions_csv(
@@ -49,7 +60,7 @@ def get_names_and_positions_csv(
 ) -> str:
     headers = ["name", "position", "searched_company", "inferenced_company", "original_url", "source"]
     with HubaseCsv(headers=headers, settings=settings) as csv_:
-        for person in __main(companies, sites, positions):
+        for person in _main(companies, sites, positions):
             csv_.persist(person)
     return csv_.download_url
 
@@ -62,7 +73,7 @@ def get_names_and_positions_csv_with_progress(
     headers = ["name", "position", "searched_company", "inferenced_company", "original_url", "source"]
     with HubaseCsv(headers=headers, settings=settings) as csv_:
         yield csv_.download_url
-        for person in __main(companies, sites, positions):
+        for person in _main(companies, sites, positions):
             csv_.persist(person)
             yield person
 
@@ -76,19 +87,21 @@ if __name__ == "__main__":
         # "Setl Group",
         # "ГК ТОЧНО",
         # "Федеральный девелопер «Неометрия»",
-        "Мосстрой",
+        # "Мосстрой",
         # "Capital Group",
-        # "ЦДС"
+        # "ЦДС",
+        "Балтика"
     ]
     sites = [
         # "cfo-russia.ru",
         # "companies.rbc.ru"
-        "sbis.ru"
     ]
     positions = [
-        "директор",
-        "руководитель",
-        "начальник",
-        "глава",
+        # "директор",
+        # "руководитель",
+        # "начальник",
+        # "глава",
+        "Директор по цифровой трансформации",
+        "Финансовый директор"
     ]
     get_names_and_positions_csv(companies, sites, positions)

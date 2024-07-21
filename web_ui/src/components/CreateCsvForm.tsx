@@ -29,6 +29,7 @@ interface IRow {
   searched_company: string;
   inferenced_company: string;
   original_url: string;
+  short_original_url: string;
   source: string;
   download_link: string;
 }
@@ -47,12 +48,14 @@ const CreateCsvForm = () => {
   })
 
   const [csvDownloadLink, setCsvDownloadLink] = useState("")
-  const [csvName, setCsvName] = useState("")
+  // const [csvName, setCsvName] = useState("")
 
   const [rows, setRows] = useState<IRow[]>([])
 
   const [sbOpen, setSbOpen] = useState(false)
   const [sbMessage, setSbMessage] = useState("")
+
+  const [loading, setLoading] = useState<boolean>(false)
 
   const onSbClose = () => setSbOpen(false)
 
@@ -73,7 +76,7 @@ const CreateCsvForm = () => {
 
     if (response.status == 403) {
       setCsvDownloadLink("")
-      setCsvName("")
+      // setCsvName("")
       setSbMessage(await response.text())
       setSbOpen(true)
       return
@@ -94,43 +97,25 @@ const CreateCsvForm = () => {
       positions: payload_data.positions.split("\n")
     }
     const ws = new WebSocket(`${import.meta.env.VITE_API_BASE_URL_WS}/csv/progress`)
+    setLoading(true)
 
     ws.onopen = event => {
       ws.send(JSON.stringify(payload))
     }
 
     ws.onmessage = event => {
-      const row = JSON.parse(event.data)
-      setRows(prev => [...prev, row])
+      const row: IRow = JSON.parse(event.data)
+      setCsvDownloadLink(row.download_link)
+      setRows(prev => [row, ...prev])
     }
 
-    // const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/csv`, {
-    //   method: "POST",
-    //   headers: {
-    //     'Accept': 'application/json',
-    //     'Content-Type': 'application/json'
-    //   },
-    //   body: JSON.stringify(payload)
-    // })
-    //
-    // if (response.status == 403) {
-    //   setCsvDownloadLink("")
-    //   setCsvName("")
-    //   setSbMessage(await response.text())
-    //   setSbOpen(true)
-    //   return
-    // }
-    //
-    // const response_data: CreateCsvResponseData = await response.json()
-    // setCsvDownloadLink(response_data.download_link)
-    //
-    // const split = response_data.download_link.split("/")
-    // const csvName = split[split.length-1]
-    // setCsvName(csvName)
+    ws.onclose = event => {
+      setLoading(false)
+    }
   };
 
   return (
-    <Stack direction="row" spacing={3}>
+    <Stack spacing={3}>
       <form onSubmit={handleSubmit(onSubmitWs)}>
         <Stack spacing={2}>
           <Controller
@@ -175,20 +160,24 @@ const CreateCsvForm = () => {
               />
             }
           />
-          <LoadingButton loading={isSubmitting} variant="contained" type="submit">Отправить</LoadingButton>
+          <LoadingButton loading={loading} variant="contained" type="submit">Отправить</LoadingButton>
         </Stack>
       </form>
-      {csvDownloadLink != "" && <Link href={csvDownloadLink}>Скачать CSV: {csvName}</Link>}
+      {
+        csvDownloadLink !== "" && !loading
+          ? <Link href={csvDownloadLink}>Скачать CSV</Link>
+          : <Box>Здесь будет ссылка для скачивания скачивания...</Box>
+      }
       <TableContainer component={Paper}>
         <Table sx={{ minWidth: 650 }} size="small" aria-label="a dense table">
           <TableHead>
             <TableRow>
-              <TableCell>name</TableCell>
-              <TableCell>position</TableCell>
-              <TableCell>searched_company</TableCell>
-              <TableCell>inferenced_company</TableCell>
-              <TableCell>original_url</TableCell>
-              <TableCell>source</TableCell>
+              <TableCell>Имя</TableCell>
+              <TableCell>Должность</TableCell>
+              <TableCell>Искомая компаняи</TableCell>
+              <TableCell>Реальная компания</TableCell>
+              <TableCell>Ссылка на источник</TableCell>
+              <TableCell>Пруф из источника</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -203,7 +192,7 @@ const CreateCsvForm = () => {
                 <TableCell>{row.position}</TableCell>
                 <TableCell>{row.searched_company}</TableCell>
                 <TableCell>{row.inferenced_company}</TableCell>
-                <TableCell>{row.original_url}</TableCell>
+                <TableCell><Link href={row.original_url}>{row.short_original_url}</Link></TableCell>
                 <TableCell>{row.source}</TableCell>
               </TableRow>
             ))}

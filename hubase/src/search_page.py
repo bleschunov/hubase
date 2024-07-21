@@ -11,6 +11,8 @@ class SearchPage:
     positions_subquery = '({positions})'
 
     def __init__(self, companies: list[str], positions: list[str], sites: list[str], url_limit: int = 5) -> None:
+        if len(sites) == 0:
+            sites.append("")
         self.__companies = companies[1:]
         self.__current_company = companies[0]
         self.__positions = positions

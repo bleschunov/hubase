@@ -1,5 +1,7 @@
+import typing as t
+
 from llm_qa.abc import LLMClientQA
-from word_classifications.abc import IWordClassifications
+from word_classifications.abc_ import IWordClassifications
 
 
 class WithCompany(IWordClassifications):
@@ -12,7 +14,8 @@ class WithCompany(IWordClassifications):
         self.__word_classifications = word_classifications
         self.__llm_qa = llm_qa
 
-    def __iter__(self) -> "IWordClassifications":
+    def __iter__(self) -> t.Iterator[dict]:
+        iter(self.__word_classifications)
         return self
 
     def __next__(self) -> dict:

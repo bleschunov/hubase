@@ -4,3 +4,4 @@
 !/front/.gitkeep
 venv
 .env
+.mypy_cache

@@ -7,7 +7,7 @@ function App() {
   return (
     <Stack spacing={4} alignItems="center">
       <Header />
-      <Container maxWidth="lg">
+      <Container>
         <CreateCsvForm />
       </Container>
     </Stack>

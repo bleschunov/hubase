@@ -10,6 +10,7 @@ from starlette.staticfiles import StaticFiles
 from starlette.websockets import WebSocket
 
 from exceptions import HuggingFaceException
+from helper import short
 from main import get_names_and_positions_csv, get_names_and_positions_csv_with_progress
 from settings import settings
 
@@ -48,6 +49,7 @@ class CsvRow(CsvDownloadLink):
     searched_company: str
     inferenced_company: str
     original_url: str
+    short_original_url: str
     source: str
 
 
@@ -89,17 +91,14 @@ async def get_csv_with_progress(ws: WebSocket) -> None:
             if row is None:
                 break
 
-            source = row["source"]
-            if len(source) > 25:
-                source = source[:25]
-
             row_dto = CsvRow(
-                name=row["name"],
-                position=row["position"],
-                searched_company=row["searched_company"],
-                inferenced_company=row["inferenced_company"],
+                name=short(row["name"]),
+                position=short(row["position"]),
+                searched_company=short(row["searched_company"]),
+                inferenced_company=short(row["inferenced_company"]),
                 original_url=row["original_url"],
-                source=source,
+                short_original_url=short(row["original_url"]),
+                source=short(row["source"]),
                 download_link=download_link
             )
 

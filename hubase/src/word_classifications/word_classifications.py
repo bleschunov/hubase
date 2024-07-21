@@ -1,11 +1,12 @@
 import logging
+import typing as t
 
 import requests
 
 from exceptions import HuggingFaceException
 from hubase_md import HubaseMd
 from settings import settings
-from word_classifications.abc import IWordClassifications
+from word_classifications.abc_ import IWordClassifications
 
 logging.basicConfig(level=logging.INFO)
 
@@ -14,13 +15,15 @@ class WordClassifications(IWordClassifications):
     __api_url = "https://api-inference.huggingface.co/models/51la5/roberta-large-NER"
     __headers = {"Authorization": f"Bearer {settings.hugging_face_token}"}
 
-    def __init__(self, page: HubaseMd, batch_size: int = 514) -> None:
-        self.__page = page
-        self.__text_batches = self.__split_text(text=page.md, batch_size=batch_size)
+    def __init__(self, text: str, batch_size: int = 514) -> None:
+        self.__text = text
+        self.__batch_size = batch_size
+        self.__text_batches = []
         self.__word_classifications: list[dict] = []
         self.__current_batch_i = 0
 
-    def __iter__(self):
+    def __iter__(self) -> t.Iterator[dict]:
+        self.__text_batches = self.__split_text(text=self.__text, batch_size=self.__batch_size)
         return self
 
     def __next__(self) -> dict:

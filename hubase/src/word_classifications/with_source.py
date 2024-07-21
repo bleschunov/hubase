@@ -1,11 +1,14 @@
-from word_classifications.abc import IWordClassifications
+import typing as t
+
+from word_classifications.abc_ import IWordClassifications
 
 
 class WithSource(IWordClassifications):
     def __init__(self, word_classifications: IWordClassifications) -> None:
         self.__word_classifications = word_classifications
 
-    def __iter__(self) -> "IWordClassifications":
+    def __iter__(self) -> t.Iterator[dict]:
+        iter(self.__word_classifications)
         return self
 
     def __next__(self) -> dict:
