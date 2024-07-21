@@ -29,10 +29,6 @@ app.add_middleware(
 )
 
 
-app.mount("/static/results", StaticFiles(directory="../results"), name="results")
-app.mount("/static", StaticFiles(directory="../front", html=True), name="front")
-
-
 class CsvOptions(BaseModel):
     companies: list[str]
     sites: list[str]
@@ -111,3 +107,7 @@ async def get_csv_with_progress(ws: WebSocket) -> None:
         # 'Status: 403. Message: {"message":"Inactive subscription or usage limit reached"}'
         msg = json.loads("{" + err.message.split("{")[-1])
         raise HTTPException(status_code=403, detail=f"Ошибка MistralAPI: {msg['message']}")
+
+
+app.mount("/static/results", StaticFiles(directory="../results"), name="results")
+app.mount("/static", StaticFiles(directory="../front", html=True), name="front")
