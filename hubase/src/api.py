@@ -29,6 +29,10 @@ app.add_middleware(
 )
 
 
+app.mount("/static/results", StaticFiles(directory="../results"), name="results")
+app.mount("/static", StaticFiles(directory="../front", html=True), name="front")
+
+
 class CsvOptions(BaseModel):
     companies: list[str]
     sites: list[str]
@@ -47,19 +51,6 @@ class CsvRow(CsvDownloadLink):
     original_url: str
     short_original_url: str
     source: str
-
-
-@app.post("/api/v1/csv")
-def get_csv(csv_options: CsvOptions) -> CsvDownloadLink:
-    try:
-        download_link = get_names_and_positions_csv(csv_options.companies, csv_options.sites, csv_options.positions)
-    except HuggingFaceException as err:
-        raise HTTPException(status_code=403, detail=str(err))
-    except MistralAPIException as err:
-        # 'Status: 403. Message: {"message":"Inactive subscription or usage limit reached"}'
-        msg = json.loads("{" + err.message.split("{")[-1])
-        raise HTTPException(status_code=403, detail=f"Ошибка MistralAPI: {msg['message']}")
-    return CsvDownloadLink(download_link=f"http://{settings.download_host}:{settings.port}/static/results/{download_link}")
 
 
 @app.websocket("/api/v1/csv/progress")
@@ -109,5 +100,14 @@ async def get_csv_with_progress(ws: WebSocket) -> None:
         raise HTTPException(status_code=403, detail=f"Ошибка MistralAPI: {msg['message']}")
 
 
-app.mount("/static/results", StaticFiles(directory="../results"), name="results")
-app.mount("/static", StaticFiles(directory="../front", html=True), name="front")
+@app.post("/api/v1/csv")
+def get_csv(csv_options: CsvOptions) -> CsvDownloadLink:
+    try:
+        download_link = get_names_and_positions_csv(csv_options.companies, csv_options.sites, csv_options.positions)
+    except HuggingFaceException as err:
+        raise HTTPException(status_code=403, detail=str(err))
+    except MistralAPIException as err:
+        # 'Status: 403. Message: {"message":"Inactive subscription or usage limit reached"}'
+        msg = json.loads("{" + err.message.split("{")[-1])
+        raise HTTPException(status_code=403, detail=f"Ошибка MistralAPI: {msg['message']}")
+    return CsvDownloadLink(download_link=f"http://{settings.download_host}:{settings.port}/static/results/{download_link}")
