@@ -47,10 +47,20 @@ def _main(
                     )
                 )
             )
-            for person in company_staff:
-                person["original_url"] = url
-                person["searched_company"] = searching_params["company"]
-                yield person
+            company_staff_iter = iter(company_staff)
+            while True:
+                try:
+                    person = next(company_staff_iter)
+                except StopIteration:
+                    break
+                except Exception as err:
+                    logging.warning(f"Непредвиденная ошибка {err}")
+                    continue
+                    # TODO: в этом месте ловить ошибки и пробрасывать кастомные наверх
+                else:
+                    person["original_url"] = url
+                    person["searched_company"] = searching_params["company"]
+                    yield person
 
 
 def get_names_and_positions_csv(
