@@ -1,14 +1,19 @@
 import './App.css'
 import CreateCsvForm from "./components/CreateCsvForm.tsx";
 import Header from "./components/Header.tsx";
-import {Container, Stack} from "@mui/material";
+import {Container, Divider, Stack} from "@mui/material";
+import PromptForm from "./components/PromptForm.tsx";
 
 function App() {
   return (
     <Stack spacing={4} alignItems="center">
       <Header />
       <Container>
-        <CreateCsvForm />
+        <Stack spacing={5}>
+          <PromptForm />
+          <Divider />
+          <CreateCsvForm />
+        </Stack>
       </Container>
     </Stack>
   )

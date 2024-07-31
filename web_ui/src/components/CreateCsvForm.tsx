@@ -2,20 +2,19 @@ import {
   Box,
   Link,
   Paper,
-  Snackbar,
   Stack,
-  Table,
-  TableBody,
+  Table, TableBody,
   TableCell,
   TableContainer,
   TableHead,
   TableRow,
-  TextField,
+  TextField
 } from "@mui/material";
 import LoadingButton from '@mui/lab/LoadingButton';
-import { Controller, SubmitHandler, useForm } from "react-hook-form";
-import { CreateCsvOptions } from "../models/CreateCsvOptions.ts";
-import { useState } from "react";
+import {Controller, SubmitHandler, useForm} from "react-hook-form";
+import {CreateCsvOptions} from "../models/CreateCsvOptions.ts";
+import {useState} from "react";
+
 
 interface IFormInput {
   companies: string;
@@ -34,75 +33,53 @@ interface IRow {
   download_link: string;
 }
 
-const MAX_CHAR_COUNT = 25;
-
 const CreateCsvForm = () => {
-  const { control, handleSubmit } = useForm({
+  const {
+    control,
+    handleSubmit,
+  } = useForm({
     defaultValues: {
       companies: "Мосстрой",
       sites: "sbis.ru",
-      positions: "директор\nруководитель\nначальник\nглава",
-    },
-  });
+      positions: "директор\nруководитель\nначальник\nглава"
+    }
+  })
 
-  const [csvDownloadLink, setCsvDownloadLink] = useState("");
-  const [rows, setRows] = useState<IRow[]>([]);
-  const [loading, setLoading] = useState<boolean>(false);
-  const [snackbarOpen, setSnackbarOpen] = useState(false);
-  const [snackbarMessage, setSnackbarMessage] = useState("");
+  const [csvDownloadLink, setCsvDownloadLink] = useState("")
+  // const [csvName, setCsvName] = useState("")
 
-  const handleSnackbarClose = () => setSnackbarOpen(false);
+  const [rows, setRows] = useState<IRow[]>([])
 
-  const logMessage = (message: string) => {
-    setSnackbarMessage(message);
-    setSnackbarOpen(true);
-  };
+  // const [sbOpen, setSbOpen] = useState(false)
+  // const [sbMessage, setSbMessage] = useState("")
 
-  const onSubmitWs: SubmitHandler<IFormInput> = async (payload_data) => {
+  const [loading, setLoading] = useState<boolean>(false)
+
+  // const onSbClose = () => setSbOpen(false)
+
+  const onSubmitWs: SubmitHandler<IFormInput> = async payload_data => {
     const payload: CreateCsvOptions = {
       companies: payload_data.companies.split("\n"),
       sites: payload_data.sites.split("\n"),
       positions: payload_data.positions.split("\n"),
       access_token: import.meta.env.VITE_ACCESS_TOKEN,
-    };
-    const ws = new WebSocket(`${import.meta.env.VITE_API_BASE_URL_WS}/csv/progress`);
-    setLoading(true);
-    logMessage("Подключение к серверу...");
+    }
+    const ws = new WebSocket(`${import.meta.env.VITE_API_BASE_URL_WS}/csv/progress`)
+    setLoading(true)
 
     ws.onopen = () => {
-      logMessage("Соединение установлено, отправка данных...");
-      ws.send(JSON.stringify(payload));
-    };
+      ws.send(JSON.stringify(payload))
+    }
 
-    ws.onmessage = (event) => {
-      try {
-        const row: IRow = JSON.parse(event.data);
-        setCsvDownloadLink(row.download_link);
-        setRows((prev) => [row, ...prev]);
-        logMessage("Данные успешно загружены.");
-      } catch (error) {
-        console.error(error);
-        const errorMessage = error instanceof Error ? error.message : "Неизвестная ошибка";
-        logMessage(`Ошибка при обработке данных: ${errorMessage}`);
-      }
-    };
-
-    ws.onerror = (event) => {
-      console.error(event);
-      const errorMessage = event instanceof ErrorEvent && event.message ? event.message : "Неизвестная ошибка";
-      logMessage(`Ошибка соединения с сервером: ${errorMessage}`);
-    };
+    ws.onmessage = event => {
+      const row: IRow = JSON.parse(event.data)
+      setCsvDownloadLink(row.download_link)
+      setRows(prev => [row, ...prev])
+    }
 
     ws.onclose = () => {
-      setLoading(false);
-    };
-  };
-
-  const truncateString = (str: string, num: number) => {
-    if (str.length <= num) {
-      return str;
+      setLoading(false)
     }
-    return str.slice(0, num) + "...";
   };
 
   return (
@@ -112,7 +89,7 @@ const CreateCsvForm = () => {
           <Controller
             name="companies"
             control={control}
-            render={({ field }) => (
+            render={({ field }) =>
               <TextField
                 {...field}
                 id="outlined-textarea"
@@ -121,12 +98,12 @@ const CreateCsvForm = () => {
                 multiline
                 rows={4}
               />
-            )}
+            }
           />
           <Controller
             name="sites"
             control={control}
-            render={({ field }) => (
+            render={({ field }) =>
               <TextField
                 {...field}
                 id="outlined-textarea"
@@ -135,12 +112,12 @@ const CreateCsvForm = () => {
                 multiline
                 rows={4}
               />
-            )}
+            }
           />
           <Controller
             name="positions"
             control={control}
-            render={({ field }) => (
+            render={({ field }) =>
               <TextField
                 {...field}
                 id="outlined-textarea"
@@ -149,25 +126,23 @@ const CreateCsvForm = () => {
                 multiline
                 rows={4}
               />
-            )}
+            }
           />
-          <LoadingButton loading={loading} variant="contained" type="submit">
-            Отправить
-          </LoadingButton>
+          <LoadingButton loading={loading} variant="contained" type="submit">Отправить</LoadingButton>
         </Stack>
       </form>
-      {csvDownloadLink !== "" && !loading ? (
-        <Link href={csvDownloadLink}>Скачать CSV</Link>
-      ) : (
-        <Box>Здесь будет ссылка для скачивания...</Box>
-      )}
+      {
+        csvDownloadLink !== "" && !loading
+          ? <Link href={csvDownloadLink}>Скачать CSV</Link>
+          : <Box>Здесь будет ссылка для скачивания скачивания...</Box>
+      }
       <TableContainer component={Paper}>
         <Table sx={{ minWidth: 650 }} size="small" aria-label="a dense table">
           <TableHead>
             <TableRow>
               <TableCell>Имя</TableCell>
               <TableCell>Должность</TableCell>
-              <TableCell>Искомая компания</TableCell>
+              <TableCell>Искомая компаняи</TableCell>
               <TableCell>Реальная компания</TableCell>
               <TableCell>Ссылка на источник</TableCell>
               <TableCell>Пруф из источника</TableCell>
@@ -175,26 +150,31 @@ const CreateCsvForm = () => {
           </TableHead>
           <TableBody>
             {rows.map((row) => (
-              <TableRow key={row.name} sx={{ '&:last-child td, &:last-child th': { border: 0 } }}>
+              <TableRow
+                key={row.name}
+                sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
+              >
                 <TableCell component="th" scope="row">
                   {row.name}
                 </TableCell>
                 <TableCell>{row.position}</TableCell>
                 <TableCell>{row.searched_company}</TableCell>
                 <TableCell>{row.inferenced_company}</TableCell>
-                <TableCell>
-                  <Link href={row.original_url}>{row.short_original_url}</Link>
-                </TableCell>
-                <TableCell>{truncateString(row.source, MAX_CHAR_COUNT)}</TableCell>
+                <TableCell><Link href={row.original_url}>{row.short_original_url}</Link></TableCell>
+                <TableCell>{row.source}</TableCell>
               </TableRow>
             ))}
           </TableBody>
         </Table>
       </TableContainer>
-      <Snackbar open={snackbarOpen} autoHideDuration={3000} onClose={handleSnackbarClose} message={snackbarMessage} />
+      {/*<Snackbar*/}
+      {/*  open={sbOpen}*/}
+      {/*  autoHideDuration={4000}*/}
+      {/*  onClose={onSbClose}*/}
+      {/*  message={sbMessage}*/}
+      {/*/>*/}
     </Stack>
-  );
-};
+  )
+}
 
-export default CreateCsvForm;
-
+export default CreateCsvForm

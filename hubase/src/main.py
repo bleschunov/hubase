@@ -1,9 +1,12 @@
 import logging
 import typing as t
+from pathlib import Path
 
 from hubase_csv import HubaseCsv
 from hubase_md import HubaseMd, JinaException
 from llm_qa.mistral import LLMClientQAMistral
+from prompt.cached import Cached
+from prompt.fs_prompt import FileSystemPrompt
 from search_page import SearchPage
 from settings import settings
 from word_classifications.only_people import OnlyPeople
@@ -11,7 +14,6 @@ from word_classifications.with_company import WithCompany
 from word_classifications.with_position import WithPosition
 from word_classifications.with_source import WithSource
 from word_classifications.word_classifications import WordClassifications
-
 
 logging.basicConfig(level=logging.INFO)
 
@@ -36,10 +38,12 @@ def _main(
         else:
             company_staff = (
                 WithCompany(
-                    LLMClientQAMistral(),
-                    WithPosition(
-                        LLMClientQAMistral(),
-                        WithSource(
+                    llm_qa=LLMClientQAMistral(),
+                    prompt=Cached(FileSystemPrompt(Path("../prompts/company.txt"))),
+                    inner=WithPosition(
+                        llm_qa=LLMClientQAMistral(),
+                        prompt=Cached(FileSystemPrompt(Path("../prompts/position.txt"))),
+                        inner=WithSource(
                             OnlyPeople(
                                 WordClassifications(md)
                             )
@@ -54,7 +58,7 @@ def _main(
                 except StopIteration:
                     break
                 except Exception as err:
-                    logging.warning(f"Непредвиденная ошибка {err}")
+                    logging.warning(f"Непредвиденная ошибка: {err}", err)
                     continue
                     # TODO: в этом месте ловить ошибки и пробрасывать кастомные наверх
                 else:

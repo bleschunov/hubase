@@ -1,5 +1,5 @@
 cd web_ui;
-yarn build --base=/static/;
+sudo yarn vite build --base=/static/;
 cp -r dist/* ../hubase/front/;
 cd ../hubase;
 source venv/bin/activate;
