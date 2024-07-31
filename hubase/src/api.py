@@ -1,6 +1,7 @@
 import json
 import logging
 import typing as t
+from pathlib import Path
 
 from asyncer import asyncify
 from fastapi import FastAPI, HTTPException
@@ -13,6 +14,7 @@ from starlette.websockets import WebSocket
 from exceptions import HuggingFaceException
 from helper import short
 from main import get_names_and_positions_csv, get_names_and_positions_csv_with_progress
+from prompt.fs_prompt import FileSystemPrompt
 from settings import settings
 
 app = FastAPI()
@@ -49,6 +51,15 @@ class CsvRow(CsvDownloadLink):
     original_url: str
     short_original_url: str
     source: str
+
+
+class Prompt(BaseModel):
+    prompt_text: str
+
+
+class UpdatePrompt(BaseModel):
+    name: str
+    prompt_text: str
 
 
 @app.websocket("/api/v1/csv/progress")
@@ -122,6 +133,25 @@ def get_csv(csv_options: CsvOptions) -> CsvDownloadLink:
         msg = json.loads("{" + err.message.split("{")[-1])
         raise HTTPException(status_code=403, detail=f"Ошибка MistralAPI: {msg['message']}")
     return CsvDownloadLink(download_link=f"http://{settings.download_host}:{settings.port}/static/results/{download_link}")
+
+
+@app.get("/api/v1/prompt/{name}")
+def get_prompt(name: str) -> Prompt:
+    prompt = FileSystemPrompt(Path(f"../prompts/{name}.txt")).get()
+    return Prompt(prompt_text=prompt)
+
+
+@app.patch("/api/v1/prompt")
+def update_prompt(update_prompt: UpdatePrompt) -> Prompt:
+    new_prompt = FileSystemPrompt(Path(f"../prompts/{update_prompt.name}.txt")).update(update_prompt.prompt_text)
+    return Prompt(prompt_text=new_prompt)
+
+
+@app.patch("/api/v1/prompt/{name}/reset")
+def reset_prompt(name: str) -> Prompt:
+    default_prompt = FileSystemPrompt(Path(f"../prompts/{name}_default.txt"))
+    reset_prompt_ = FileSystemPrompt(Path(f"../prompts/{name}.txt")).update(default_prompt.get())
+    return Prompt(prompt_text=reset_prompt_)
 
 
 app.mount("/static/results", StaticFiles(directory="../results"), name="results")

@@ -6,6 +6,7 @@ from word_classifications.abc_ import IWordClassifications
 logging.basicConfig(level=logging.INFO)
 
 
+# TODO: move to decorators folder
 class OnlyPeople(IWordClassifications):
     def __init__(self, word_classifications: IWordClassifications) -> None:
         self.__word_classifications = word_classifications

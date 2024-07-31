@@ -15,8 +15,10 @@ class LLMClientQAMistral(LLMClientQA):
         self.__model = "mistral-large-latest"
 
     def ask(self, prompt) -> str:
-        # logging.info(f"Итоговый промпт:\n{prompt}")
+        short_prompt = prompt[:97] + "..."
+        logging.info(f"Итоговый промпт: {short_prompt}")
         logging.info(f"Делаем запрос в Mistral")
+
         response = self.__client.chat(model=self.__model, messages=[ChatMessage(role="user", content=prompt)])
 
         logging.info(f"Использовано токенов: {response.usage}")

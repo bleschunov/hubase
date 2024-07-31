@@ -3,7 +3,8 @@ import {
   Link,
   Paper,
   Stack,
-  Table, TableBody,
+  Table,
+  TableBody,
   TableCell,
   TableContainer,
   TableHead,
@@ -14,6 +15,7 @@ import LoadingButton from '@mui/lab/LoadingButton';
 import {Controller, SubmitHandler, useForm} from "react-hook-form";
 import {CreateCsvOptions} from "../models/CreateCsvOptions.ts";
 import {useState} from "react";
+import {IRow} from "../models/Row.ts";
 
 
 interface IFormInput {
@@ -22,16 +24,6 @@ interface IFormInput {
   positions: string;
 }
 
-interface IRow {
-  name: string;
-  position: string;
-  searched_company: string;
-  inferenced_company: string;
-  original_url: string;
-  short_original_url: string;
-  source: string;
-  download_link: string;
-}
 
 const CreateCsvForm = () => {
   const {
@@ -128,7 +120,9 @@ const CreateCsvForm = () => {
               />
             }
           />
-          <LoadingButton loading={loading} variant="contained" type="submit">Отправить</LoadingButton>
+          <Box>
+            <LoadingButton loading={loading} variant="contained" type="submit">Отправить</LoadingButton>
+          </Box>
         </Stack>
       </form>
       {
