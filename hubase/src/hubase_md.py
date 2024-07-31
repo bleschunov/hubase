@@ -36,6 +36,8 @@ class HubaseMd:
         try:
             error = json.loads(jina_response)
         except ValueError:
-            pass
+            logging.info("Jina ответила без ошибок.")
+            return
         else:
-            raise JinaException(error["cause"]["name"])
+            logging.info("Ошибка Jina.")
+            raise JinaException(error)
