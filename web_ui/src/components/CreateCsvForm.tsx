@@ -98,7 +98,7 @@ const CreateCsvForm = () => {
     logWs.onmessage = (event) => {
       try {
         const message = event.data;
-        if (message != "ping"){
+        if (message !== "ping"){
           logMessage(message);
         }
       } catch (error) {
@@ -177,6 +177,18 @@ const CreateCsvForm = () => {
           </LoadingButton>
         </Stack>
       </form>
+      <TextField
+        label="Логи"
+        multiline
+        rows={5}
+        value={logMessages.join("\n")}
+        InputProps={{
+          readOnly: true,
+        }}
+        fullWidth
+        variant="outlined"
+        sx={{ mt: 3 }}
+      />
       {csvDownloadLink !== "" && !loading ? (
         <Link href={csvDownloadLink}>Скачать CSV</Link>
       ) : (
@@ -212,18 +224,6 @@ const CreateCsvForm = () => {
           </TableBody>
         </Table>
       </TableContainer>
-      <TextField
-        label="Логи"
-        multiline
-        rows={5}
-        value={logMessages.join("\n")}
-        InputProps={{
-          readOnly: true,
-        }}
-        fullWidth
-        variant="outlined"
-        sx={{ mt: 3 }}
-      />
     </Stack>
   );
 };
