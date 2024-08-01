@@ -1,9 +1,14 @@
 import json
 import logging
+
 import requests
+
+logging.basicConfig(level=logging.INFO)
+
 
 class JinaException(Exception):
     pass
+
 
 class HubaseMd:
     __jina_query = "https://r.jina.ai/{url}"
@@ -13,14 +18,12 @@ class HubaseMd:
 
     @property
     def md(self) -> str:
-        log_message = f"Строим Markdown для сайта: {self.__url}"
-        logging.info(log_message)
-
+        logging.info(f"Строим Markdown для сайта: {self.__url}")
         query = self.__jina_query.format(url=self.__url)
-        log_message = f"Делаем запрос: {query}"
-        logging.info(log_message)
-
-        response = requests.get(url=query, headers={"X-Return-Format": "text"})
+        logging.info(f"Делаем запрос: {query}")
+        response = requests.get(url=query, headers={
+            "X-Return-Format": "text"
+        })
         response = response.text
         self.__raise_exception_on_jina_error(response)
         return response
@@ -33,12 +36,8 @@ class HubaseMd:
         try:
             error = json.loads(jina_response)
         except ValueError:
-            log_message = "Jina ответила без ошибок."
-            logging.info(log_message)
+            logging.info("Jina ответила без ошибок.")
             return
         else:
-            log_message = "Ошибка Jina."
-            logging.info(log_message)
+            logging.info("Ошибка Jina.")
             raise JinaException(error)
-
-
