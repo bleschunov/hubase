@@ -14,23 +14,13 @@ import {
 import LoadingButton from '@mui/lab/LoadingButton';
 import { Controller, SubmitHandler, useForm } from "react-hook-form";
 import { CreateCsvOptions } from "../models/CreateCsvOptions.ts";
-import { useState } from "react";
+import {useState} from "react";
+import {IRow} from "../models/Row.ts";
 
 interface IFormInput {
   companies: string;
   sites: string;
   positions: string;
-}
-
-interface IRow {
-  name: string;
-  position: string;
-  searched_company: string;
-  inferenced_company: string;
-  original_url: string;
-  short_original_url: string;
-  source: string;
-  download_link: string;
 }
 
 const MAX_CHAR_COUNT = 25;
@@ -53,6 +43,7 @@ const CreateCsvForm = () => {
     setLogMessages((prev) => [...prev, message]);
   };
 
+
   const onSubmitWs: SubmitHandler<IFormInput> = async (payload_data) => {
     const payload: CreateCsvOptions = {
       companies: payload_data.companies.split("\n"),
@@ -62,9 +53,9 @@ const CreateCsvForm = () => {
     };
 
     const csvWs = new WebSocket(`${import.meta.env.VITE_API_BASE_URL_WS}/csv/progress`);
-    const logWs = new WebSocket(`${import.meta.env.VITE_API_BASE_URL_WS}/ws/logs`);
 
     setLoading(true);
+
     logMessage("Подключение к серверу...");
 
     csvWs.onopen = () => {
@@ -93,38 +84,32 @@ const CreateCsvForm = () => {
 
     csvWs.onclose = () => {
       setLoading(false);
+      logMessage("Соединение закрыто.");
     };
 
-    logWs.onmessage = (event) => {
+    csvWs.onmessage = (event) => {
       try {
-        const message = event.data;
-        if (message !== "ping"){
-          logMessage(message);
-        }
+        logMessage(event.data);
       } catch (error) {
         console.error("Ошибка при обработке логов:", error);
       }
     };
 
-    logWs.onerror = (event) => {
+    csvWs.onerror = (event) => {
       console.error(event);
       logMessage("Ошибка получения логов.");
     };
 
-    logWs.onclose = () => {
+    csvWs.onclose = () => {
       console.log("Соединение с сервером закрыто.");
     };
   };
 
-  const truncateString = (str: string | undefined, num: number) => {
-    if (!str) {
-      return "Error";
-    }
-    if (str.length <= num) {
-      return str;
-    }
-    return str.slice(0, num) + "...";
-  };
+
+
+
+  const truncateString = (str: string | undefined, num: number): string | undefined =>
+    str && str.length > num ? str.slice(0, num) + "..." : str;
 
   return (
     <Stack spacing={3}>
@@ -209,15 +194,12 @@ const CreateCsvForm = () => {
           <TableBody>
             {rows.map((row) => (
               <TableRow key={row.name} sx={{ '&:last-child td, &:last-child th': { border: 0 } }}>
-                <TableCell component="th" scope="row">
-                  {row.name}
-                </TableCell>
-                <TableCell>{row.position}</TableCell>
-                <TableCell>{row.searched_company}</TableCell>
-                <TableCell>{row.inferenced_company}</TableCell>
-                <TableCell>
-                  <Link href={row.original_url}>{row.short_original_url}</Link>
-                </TableCell>
+                <TableCell component="th" scope="row">{truncateString(row.name, MAX_CHAR_COUNT)}</TableCell>
+                <TableCell>{truncateString(row.position, MAX_CHAR_COUNT)}</TableCell>
+                <TableCell>{truncateString(row.searched_company, MAX_CHAR_COUNT)}</TableCell>
+                <TableCell>{truncateString(row.inferenced_company, MAX_CHAR_COUNT)}</TableCell>
+                <TableCell><Link href={truncateString(row.original_url, MAX_CHAR_COUNT)}>
+                  {truncateString(row.short_original_url, MAX_CHAR_COUNT)}</Link></TableCell>
                 <TableCell>{truncateString(row.source, MAX_CHAR_COUNT)}</TableCell>
               </TableRow>
             ))}

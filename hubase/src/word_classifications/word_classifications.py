@@ -4,7 +4,6 @@ import typing as t
 import requests
 
 from exceptions import HuggingFaceException
-from hubase_md import HubaseMd
 from settings import settings
 from word_classifications.abc_ import IWordClassifications
 
@@ -15,12 +14,13 @@ class WordClassifications(IWordClassifications):
     __api_url = "https://api-inference.huggingface.co/models/51la5/roberta-large-NER"
     __headers = {"Authorization": f"Bearer {settings.hugging_face_token}"}
 
-    def __init__(self, text: str, batch_size: int = 514) -> None:
+    def __init__(self, text: str, logger: logging.Logger, batch_size: int = 514) -> None:
         self.__text = text
         self.__batch_size = batch_size
         self.__text_batches = []
         self.__word_classifications: list[dict] = []
         self.__current_batch_i = 0
+        self.__logger = logger
 
     def __iter__(self) -> t.Iterator[dict]:
         self.__text_batches = self.__split_text(text=self.__text, batch_size=self.__batch_size)
@@ -34,7 +34,7 @@ class WordClassifications(IWordClassifications):
             current_batch = self.__text_batches[self.__current_batch_i]
             self.__current_batch_i += 1
 
-            logging.info(f"Делаем запрос в NER. Батч {self.__current_batch_i}/{len(self.__text_batches)}")
+            self.__logger.info(f"Делаем запрос в NER. Батч {self.__current_batch_i}/{len(self.__text_batches)}")
             raw_word_classifications = self.__call_huggingface_or_raise(
                 self.__api_url,
                 self.__headers,
@@ -62,7 +62,7 @@ class WordClassifications(IWordClassifications):
         ).json()
 
         if "error" in response:
-            logging.warning(f"HuggingFace error. {response['error']}")
+            self.__logger.warning(f"HuggingFace error. {response['error']}")
             raise HuggingFaceException(response['error'])
 
         return response
