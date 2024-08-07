@@ -40,7 +40,7 @@ const CreateCsvForm = () => {
   const [logMessages, setLogMessages] = useState<string[]>([]);
 
   const logMessage = (message: string) => {
-    setLogMessages((prev) => [...prev, message]);
+    setLogMessages((prev) => [message, ...prev]);
   };
 
 
@@ -64,52 +64,41 @@ const CreateCsvForm = () => {
     };
 
     csvWs.onmessage = (event) => {
+      let row: IRow
       try {
-        const row: IRow = JSON.parse(event.data);
-        setCsvDownloadLink(row.download_link);
-        setRows((prev) => [row, ...prev]);
-        logMessage("Данные успешно загружены.");
+        row = JSON.parse(event.data);
       } catch (error) {
-        console.error(error);
-        const errorMessage = error instanceof Error ? error.message : "Неизвестная ошибка";
-        logMessage(`Ошибка при обработке данных: ${errorMessage}`);
+        logMessage(`Ошибка при обработке данных: ${error}`);
+        return
       }
-    };
 
-    csvWs.onerror = (event) => {
-      console.error(event);
-      const errorMessage = event instanceof ErrorEvent && event.message ? event.message : "Неизвестная ошибка";
-      logMessage(`Ошибка соединения с сервером: ${errorMessage}`);
-    };
-
-    csvWs.onclose = () => {
-      setLoading(false);
-      logMessage("Соединение закрыто.");
+      setCsvDownloadLink(row.download_link);
+      setRows((prev) => [row, ...prev]);
+      logMessage("Данные успешно загружены.");
     };
 
     csvWs.onmessage = (event) => {
       try {
         logMessage(event.data);
       } catch (error) {
-        console.error("Ошибка при обработке логов:", error);
+        logMessage("Ошибка при обработке логов");
       }
     };
 
     csvWs.onerror = (event) => {
       console.error(event);
-      logMessage("Ошибка получения логов.");
+      logMessage(`Ошибка соединения с сервером.`);
     };
 
     csvWs.onclose = () => {
-      console.log("Соединение с сервером закрыто.");
+      setLoading(false);
+      logMessage("Соединение закрыто.");
     };
   };
 
 
-
-
-  const truncateString = (str: string | undefined, num: number): string | undefined =>
-    str && str.length > num ? str.slice(0, num) + "..." : str;
+  const truncateString = (str: string, num: number): string =>
+    str.slice(0, num - 3) + "...";
 
   return (
     <Stack spacing={3}>
@@ -157,9 +146,7 @@ const CreateCsvForm = () => {
               />
             )}
           />
-          <LoadingButton loading={loading} variant="contained" type="submit">
-            Отправить
-          </LoadingButton>
+            <LoadingButton loading={loading} variant="contained" type="submit">Отправить</LoadingButton>
         </Stack>
       </form>
       <TextField

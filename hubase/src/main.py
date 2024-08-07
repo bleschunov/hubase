@@ -1,7 +1,7 @@
 import logging
 import typing as t
 from pathlib import Path
-
+from logging import Logger
 from hubase_csv import HubaseCsv
 from hubase_md import HubaseMd, JinaException
 from llm_qa.mistral import LLMClientQAMistral
@@ -21,7 +21,7 @@ def _main(
     companies: list[str],
     sites: list[str],
     positions: list[str],
-    logger: logging.Logger
+    logger: Logger
 ) -> t.Iterator[dict[str, str | int]]:
     for url, searching_params in SearchPage(companies, positions, sites, url_limit=5):
         try:
@@ -71,7 +71,7 @@ def get_names_and_positions_csv(
     companies: list[str],
     sites: list[str],
     positions: list[str],
-    logger: logging.Logger
+    logger: Logger
 ) -> str:
     headers = ["name", "position", "searched_company", "inferenced_company", "original_url", "source"]
     with HubaseCsv(headers=headers, settings=settings) as csv_:
@@ -84,7 +84,7 @@ def get_names_and_positions_csv_with_progress(
     companies: list[str],
     sites: list[str],
     positions: list[str],
-    logger: logging.Logger
+    logger: Logger
 ) -> t.Iterator[dict[str, str | int] | str]:
     headers = ["name", "position", "searched_company", "inferenced_company", "original_url", "source"]
     with HubaseCsv(headers=headers, settings=settings) as csv_:

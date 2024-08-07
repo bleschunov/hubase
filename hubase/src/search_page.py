@@ -50,7 +50,7 @@ class SearchPage:
             self.__query = " AND ".join(subqueries)
 
             logging.info(f"Делаем запрос: {self.__query}")
-            self.__urls.extend(google.search(self.__query))
+            self.__urls.extend(google.search(self.__query, stop=self.__url_limit))
 
         searching_params = {
             "site": self.__current_site,

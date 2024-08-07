@@ -1,4 +1,5 @@
 import logging
+from logging import Logger
 import typing as t
 
 import requests
@@ -14,7 +15,7 @@ class WordClassifications(IWordClassifications):
     __api_url = "https://api-inference.huggingface.co/models/51la5/roberta-large-NER"
     __headers = {"Authorization": f"Bearer {settings.hugging_face_token}"}
 
-    def __init__(self, text: str, logger: logging.Logger, batch_size: int = 514) -> None:
+    def __init__(self, text: str, logger: Logger, batch_size: int = 514) -> None:
         self.__text = text
         self.__batch_size = batch_size
         self.__text_batches = []

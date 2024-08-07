@@ -2,7 +2,6 @@ import asyncio
 import json
 import logging
 import typing as t
-from queue import Queue
 from pathlib import Path
 
 from asyncer import asyncify
@@ -62,21 +61,18 @@ class UpdatePrompt(BaseModel):
     name: str
     prompt_text: str
 
-
-log_queues: t.Dict[WebSocket, Queue] = {}
-
 class WebSocketHandler(logging.Handler):
-    def __init__(self, ws: WebSocket):
+    def __init__(self, websocket: WebSocket, loop: asyncio.AbstractEventLoop):
         super().__init__()
-        self.ws = ws
+        self.websocket = websocket
+        self.loop = loop
 
-    def emit(self, record):
-        try:
-            log_entry = self.format(record)
-            log_queues[self.ws].put_nowait(log_entry)
-        except TypeError as e:
-            logging.error(f"{record.msg}", exc_info=True)
-            raise e
+    async def send_log(self, log_entry: str):
+        await self.websocket.send_text(log_entry)
+
+    def emit(self, record: logging.LogRecord):
+        log_entry = self.format(record)
+        self.loop.call_soon_threadsafe(asyncio.ensure_future, self.send_log(log_entry))
 
 
 @app.websocket("/api/v1/csv/progress")
@@ -92,23 +88,14 @@ async def get_csv_with_progress(ws: WebSocket) -> None:
 
     logging.info("Доступ разрешён.")
 
-    log_queue = Queue()
-    log_queues[ws] = log_queue
-
-    handler = WebSocketHandler(ws)
+    loop = asyncio.get_event_loop()
+    handler = WebSocketHandler(ws, loop)
     formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
     handler.setFormatter(formatter)
 
     logger = logging.getLogger(f"websocket_{id(ws)}")
     logger.setLevel(logging.INFO)
     logger.addHandler(handler)
-
-    async def send_logs():
-        while True:
-            message = await asyncio.to_thread(log_queue.get)
-            await ws.send_text(message)
-
-    send_logs_task = asyncio.create_task(send_logs())
 
     try:
         rows = await asyncify(get_names_and_positions_csv_with_progress)(
@@ -153,10 +140,8 @@ async def get_csv_with_progress(ws: WebSocket) -> None:
         msg = json.loads("{" + err.message.split("{")[-1])
         raise HTTPException(status_code=403, detail=f"Ошибка MistralAPI: {msg['message']}")
     finally:
-        send_logs_task.cancel()
         logger.removeHandler(handler)
         logging.getLogger().removeHandler(handler)
-        del log_queues[ws]
 
 
 @app.post("/api/v1/csv")
