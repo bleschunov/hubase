@@ -1,6 +1,10 @@
+import logging
 import typing as t
 import re
 import dataclasses
+
+
+logging.basicConfig(level=logging.INFO)
 
 
 @dataclasses.dataclass(frozen=True)
@@ -31,10 +35,11 @@ class SearchQueries:
     def compiled(self) -> t.Iterator[SearchQuery]:
         positions_ = self.__build_positions_list()
         for company in self.__companies:
+            logging.info(f"Поиск для компании: {company}")
             for site in self.__sites:
                 for position in positions_:
                     search_params = {
-                        "company": f'"{company}"',
+                        "company": company,
                         "site": f'site:{site}' if site != "" else "",
                         self.__position_variable: position
                     }
@@ -48,14 +53,20 @@ class SearchQueries:
         prohibited_variables = variables - self.__allowed_variables
 
         if len(prohibited_variables) != 0:
-            raise ValueError("В шаблоне поискового запроса запрещённые переменные.", prohibited_variables)
+            raise ValueError(
+                f"В шаблоне поискового запроса запрещённые переменные: {', '.join(prohibited_variables)}. "
+                f"Разрешённые переменные: {', '.join(self.__allowed_variables)}",
+            )
 
         if self.__is_plural_pos_in and self.__is_singular_pos_in:
-            raise ValueError("{positions} и {position} не могут быть одновременно.")
+            raise ValueError(
+                f"{{positions}} и {{position}} не могут быть одновременно. "
+                f"Разрешённые переменные: {', '.join(self.__allowed_variables)}"
+            )
 
     def __build_positions_list(self) -> list[str]:
         if self.__is_plural_pos_in:
-            positions_ = " OR ".join(f'"{pos}"' for pos in self.__positions)
+            positions_ = " OR ".join(self.__positions)
             return [f"({positions_})"]
         else:
-            return [f'"{pos}"' for pos in self.__positions]
+            return self.__positions

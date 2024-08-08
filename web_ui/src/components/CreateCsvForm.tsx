@@ -19,21 +19,16 @@ import {IRow} from "../models/Row.ts";
 
 
 interface IFormInput {
-  search_query: string;
+  search_query_template: string;
   companies: string;
   sites: string;
   positions: string;
 }
 
-// interface SearchQueryError {
-//   type: "err";
-//   message: string;
-// }
-//
-// interface SearchQuerySuccess {
-//   type: "success";
-//   data: { "compiled_search_queries": string[] }
-// }
+interface SearchQueryResponse {
+  type: "error" | "success";
+  data: string | string[];
+}
 
 
 const CreateCsvForm = () => {
@@ -44,7 +39,7 @@ const CreateCsvForm = () => {
     setError,
   } = useForm<IFormInput>({
     defaultValues: {
-      search_query: "{company} AND {positions} AND {site}",
+      search_query_template: "{company} AND {positions} AND {site}",
       companies: "Мосстрой",
       sites: "sbis.ru",
       positions: "директор\nруководитель\nначальник\nглава"
@@ -56,33 +51,45 @@ const CreateCsvForm = () => {
   const [loading, setLoading] = useState<boolean>(false)
   const [compiledSearchQueries, setCompiledSearchQueries] = useState<string[]>([])
 
-  const onTestSearchQuery: SubmitHandler<IFormInput> = async payload_data => {
+  const onTestSearchQuery: SubmitHandler<IFormInput> = async (payload_data): boolean => {
     setLoading(true)
     const resp = await fetch(`${import.meta.env.VITE_API_BASE_URL}/search_query`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json;charset=utf-8"
       },
-      body: JSON.stringify(payload_data.search_query)
+      body: JSON.stringify(payload_data.search_query_template)
     })
 
-    const resp_data = await resp.json()
+    const resp_data = await resp.json() as SearchQueryResponse
 
     if (resp_data.type === "error") {
-      setError("search_query", resp_data.message)
+      const error_message = resp_data.data as string
+      setCompiledSearchQueries([])
+      setError("search_query_template", { type: "validation_error", message: error_message })
+      setLoading(false)
+      return false
     }
     else if (resp_data.type === "success") {
-      setCompiledSearchQueries(resp_data.compiled_search_queries)
+      const compiled_queries = resp_data.data as string[]
+      setCompiledSearchQueries(compiled_queries)
+      setLoading(false)
+      return true
     }
-
-    setLoading(false)
   }
 
   const onSubmitWs: SubmitHandler<IFormInput> = async payload_data => {
+    const is_test_success = await onTestSearchQuery(payload_data)
+
+    if (!is_test_success) {
+      return
+    }
+
     const payload: CreateCsvOptions = {
       companies: payload_data.companies.split("\n"),
       sites: payload_data.sites.split("\n"),
       positions: payload_data.positions.split("\n"),
+      search_query_template: payload_data.search_query_template,
       access_token: import.meta.env.VITE_ACCESS_TOKEN,
     }
     const ws = new WebSocket(`${import.meta.env.VITE_API_BASE_URL_WS}/csv/progress`)
@@ -107,30 +114,32 @@ const CreateCsvForm = () => {
     <Stack spacing={3}>
       <form>
         <Stack spacing={2}>
-          <Controller
-            name="search_query"
-            control={control}
-            render={({ field }) =>
-              <TextField
-                {...field}
-                error={Object.entries(errors).length > 0}
-                helperText={Object.entries(errors).length > 0 && errors?.search_query.message}
-                id="outlined-textarea"
-                label="Поисковой запрос"
-                placeholder="{company} AND {positions} AND {site}"
-              />
-            }
-          />
-          <Box>
-            <LoadingButton
-              loading={loading}
-              variant="outlined"
-              onClick={handleSubmit(onTestSearchQuery)}
-            >
-              Протестировать
-            </LoadingButton>
-          </Box>
-          {compiledSearchQueries.map((query: string) => <Box>{query}</Box>)}
+          <Stack spacing={1} sx={{ border: "solid #CCC", p: 1, borderRadius: "10px"}}>
+            <Controller
+              name="search_query_template"
+              control={control}
+              render={({ field }) =>
+                <TextField
+                  {...field}
+                  error={Object.entries(errors).length > 0}
+                  helperText={Object.entries(errors).length > 0 && errors?.search_query_template.message}
+                  id="outlined-textarea"
+                  label="Поисковой запрос"
+                  placeholder="{company} AND {positions} AND {site}"
+                />
+              }
+            />
+            <Box>
+              <LoadingButton
+                loading={loading}
+                variant="outlined"
+                onClick={handleSubmit(onTestSearchQuery)}
+              >
+                Протестировать
+              </LoadingButton>
+            </Box>
+            {compiledSearchQueries.map((query: string) => <Box>{query}</Box>)}
+          </Stack>
           <Controller
             name="companies"
             control={control}

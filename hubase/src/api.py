@@ -4,7 +4,7 @@ import typing as t
 from pathlib import Path
 
 from asyncer import asyncify
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Body
 from mistralai.exceptions import MistralAPIException
 from pydantic import BaseModel
 from starlette.middleware.cors import CORSMiddleware
@@ -15,6 +15,7 @@ from exceptions import HuggingFaceException
 from helper import short
 from main import get_names_and_positions_csv, get_names_and_positions_csv_with_progress
 from prompt.fs_prompt import FileSystemPrompt
+from search_queries import SearchQueries
 from settings import settings
 
 app = FastAPI()
@@ -36,6 +37,7 @@ class CsvOptions(BaseModel):
     companies: list[str]
     sites: list[str]
     positions: list[str]
+    search_query_template: str
     access_token: str
 
 
@@ -62,6 +64,11 @@ class UpdatePrompt(BaseModel):
     prompt_text: str
 
 
+class SearchQueryResponse(BaseModel):
+    type: t.Literal["error", "success"]
+    data: str | list[str]
+
+
 @app.websocket("/api/v1/csv/progress")
 async def get_csv_with_progress(ws: WebSocket) -> None:
     def next_(gen: t.Iterator[any]) -> any:
@@ -83,7 +90,8 @@ async def get_csv_with_progress(ws: WebSocket) -> None:
     rows = await asyncify(get_names_and_positions_csv_with_progress)(
         companies=csv_options.companies,
         sites=csv_options.sites,
-        positions=csv_options.positions
+        positions=csv_options.positions,
+        search_query_template=csv_options.search_query_template
     )
 
     try:
@@ -152,6 +160,21 @@ def reset_prompt(name: str) -> Prompt:
     default_prompt = FileSystemPrompt(Path(f"../prompts/{name}_default.txt"))
     reset_prompt_ = FileSystemPrompt(Path(f"../prompts/{name}.txt")).update(default_prompt.get())
     return Prompt(prompt_text=reset_prompt_)
+
+
+@app.post("/api/v1/search_query")
+def compile_search_queries(search_query_template: t.Annotated[str, Body()]) -> SearchQueryResponse:
+    example_companies = ["WeDo", "Hub"]
+    example_positions = ["директор дискотеки", "менеджер танцев"]
+    example_sites = ["roga.com", "kopyta.com"]
+    try:
+        queries = SearchQueries(search_query_template, example_companies, example_positions, example_sites)
+    except ValueError as err:
+        return SearchQueryResponse(type="error", data=str(err))
+    else:
+        compiled = [q.query for q in queries.compiled()]
+        return SearchQueryResponse(type="success", data=compiled)
+
 
 
 app.mount("/static/results", StaticFiles(directory="../results"), name="results")
