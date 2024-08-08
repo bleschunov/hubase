@@ -9,7 +9,12 @@ interface IRow {
   download_link: string;
 }
 
+interface CsvResponse {
+  type: "log" | "csv_row";
+  data: IRow | string;
+}
+
 
 export type {
-  IRow
+  IRow, CsvResponse
 }

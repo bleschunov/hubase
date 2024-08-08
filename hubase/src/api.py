@@ -61,18 +61,23 @@ class UpdatePrompt(BaseModel):
     name: str
     prompt_text: str
 
-class WebSocketHandler(logging.Handler):
-    def __init__(self, websocket: WebSocket, loop: asyncio.AbstractEventLoop):
+
+class CsvResponse(BaseModel):
+    type: t.Literal["log", "csv_row"]
+    data: CsvRow | str
+
+
+class WebSocketLoggingHandler(logging.Handler):
+    def __init__(self, websocket: WebSocket):
         super().__init__()
         self.websocket = websocket
-        self.loop = loop
-
-    async def send_log(self, log_entry: str):
-        await self.websocket.send_text(log_entry)
 
     def emit(self, record: logging.LogRecord):
         log_entry = self.format(record)
-        self.loop.call_soon_threadsafe(asyncio.ensure_future, self.send_log(log_entry))
+        asyncio.run(self.__send_log(log_entry))
+
+    async def __send_log(self, log_entry: str):
+        await self.websocket.send_json(CsvResponse(type="log", data=log_entry).model_dump())
 
 
 @app.websocket("/api/v1/csv/progress")
@@ -88,14 +93,13 @@ async def get_csv_with_progress(ws: WebSocket) -> None:
 
     logging.info("Доступ разрешён.")
 
-    loop = asyncio.get_event_loop()
-    handler = WebSocketHandler(ws, loop)
-    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-    handler.setFormatter(formatter)
+    logging_handler = WebSocketLoggingHandler(ws)
+    formatter = logging.Formatter('%(asctime)s | %(message)s', "%H:%M:%S")
+    logging_handler.setFormatter(formatter)
 
-    logger = logging.getLogger(f"websocket_{id(ws)}")
+    logger = logging.getLogger(f"ws_{hex(id(ws))}")
     logger.setLevel(logging.INFO)
-    logger.addHandler(handler)
+    logger.addHandler(logging_handler)
 
     try:
         rows = await asyncify(get_names_and_positions_csv_with_progress)(
@@ -129,7 +133,8 @@ async def get_csv_with_progress(ws: WebSocket) -> None:
                 download_link=download_link
             )
 
-            await ws.send_json(row_dto.model_dump())
+            csv_response = CsvResponse(type="csv_row", data=row_dto)
+            await ws.send_json(csv_response.model_dump())
 
         await ws.close()
     except WebSocketDisconnect:
@@ -139,9 +144,6 @@ async def get_csv_with_progress(ws: WebSocket) -> None:
     except MistralAPIException as err:
         msg = json.loads("{" + err.message.split("{")[-1])
         raise HTTPException(status_code=403, detail=f"Ошибка MistralAPI: {msg['message']}")
-    finally:
-        logger.removeHandler(handler)
-        logging.getLogger().removeHandler(handler)
 
 
 @app.post("/api/v1/csv")

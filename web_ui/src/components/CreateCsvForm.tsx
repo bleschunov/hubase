@@ -15,7 +15,8 @@ import LoadingButton from '@mui/lab/LoadingButton';
 import { Controller, SubmitHandler, useForm } from "react-hook-form";
 import { CreateCsvOptions } from "../models/CreateCsvOptions.ts";
 import {useState} from "react";
-import {IRow} from "../models/Row.ts";
+import {IRow} from "../models/CsvResponse.ts";
+import {CsvResponse} from "../models/CsvResponse.ts";
 
 interface IFormInput {
   companies: string;
@@ -64,7 +65,7 @@ const CreateCsvForm = () => {
     };
 
     csvWs.onmessage = (event) => {
-      let row: IRow
+      let row: CsvResponse
       try {
         row = JSON.parse(event.data);
       } catch (error) {
@@ -72,22 +73,22 @@ const CreateCsvForm = () => {
         return
       }
 
-      setCsvDownloadLink(row.download_link);
-      setRows((prev) => [row, ...prev]);
-      logMessage("Данные успешно загружены.");
-    };
+      if (row.type === "csv_row") {
+        const csv_row = row.data as IRow
 
-    csvWs.onmessage = (event) => {
-      try {
-        logMessage(event.data);
-      } catch (error) {
-        logMessage("Ошибка при обработке логов");
+        setCsvDownloadLink(csv_row.download_link);
+        setRows((prev) => [csv_row, ...prev]);
+      } else if (row.type === "log") {
+        const log_entry = row.data as string
+        logMessage(log_entry);
       }
+
+
     };
 
     csvWs.onerror = (event) => {
       console.error(event);
-      logMessage(`Ошибка соединения с сервером.`);
+      logMessage("Ошибка соединения с сервером.");
     };
 
     csvWs.onclose = () => {
@@ -97,8 +98,7 @@ const CreateCsvForm = () => {
   };
 
 
-  const truncateString = (str: string, num: number): string =>
-    str.slice(0, num - 3) + "...";
+  const truncateString = (str: string, num: number): string => str.length > num ? str.slice(0, num - 3) + "..." : str;
 
   return (
     <Stack spacing={3}>
@@ -152,7 +152,7 @@ const CreateCsvForm = () => {
       <TextField
         label="Логи"
         multiline
-        rows={5}
+        rows={10}
         value={logMessages.join("\n")}
         InputProps={{
           readOnly: true,
