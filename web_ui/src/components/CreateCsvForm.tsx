@@ -19,18 +19,32 @@ import {IRow} from "../models/Row.ts";
 
 
 interface IFormInput {
+  search_query: string;
   companies: string;
   sites: string;
   positions: string;
 }
+
+// interface SearchQueryError {
+//   type: "err";
+//   message: string;
+// }
+//
+// interface SearchQuerySuccess {
+//   type: "success";
+//   data: { "compiled_search_queries": string[] }
+// }
 
 
 const CreateCsvForm = () => {
   const {
     control,
     handleSubmit,
-  } = useForm({
+    formState: { errors },
+    setError,
+  } = useForm<IFormInput>({
     defaultValues: {
+      search_query: "{company} AND {positions} AND {site}",
       companies: "Мосстрой",
       sites: "sbis.ru",
       positions: "директор\nруководитель\nначальник\nглава"
@@ -38,16 +52,31 @@ const CreateCsvForm = () => {
   })
 
   const [csvDownloadLink, setCsvDownloadLink] = useState("")
-  // const [csvName, setCsvName] = useState("")
-
   const [rows, setRows] = useState<IRow[]>([])
-
-  // const [sbOpen, setSbOpen] = useState(false)
-  // const [sbMessage, setSbMessage] = useState("")
-
   const [loading, setLoading] = useState<boolean>(false)
+  const [compiledSearchQueries, setCompiledSearchQueries] = useState<string[]>([])
 
-  // const onSbClose = () => setSbOpen(false)
+  const onTestSearchQuery: SubmitHandler<IFormInput> = async payload_data => {
+    setLoading(true)
+    const resp = await fetch(`${import.meta.env.VITE_API_BASE_URL}/search_query`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json;charset=utf-8"
+      },
+      body: JSON.stringify(payload_data.search_query)
+    })
+
+    const resp_data = await resp.json()
+
+    if (resp_data.type === "error") {
+      setError("search_query", resp_data.message)
+    }
+    else if (resp_data.type === "success") {
+      setCompiledSearchQueries(resp_data.compiled_search_queries)
+    }
+
+    setLoading(false)
+  }
 
   const onSubmitWs: SubmitHandler<IFormInput> = async payload_data => {
     const payload: CreateCsvOptions = {
@@ -76,8 +105,32 @@ const CreateCsvForm = () => {
 
   return (
     <Stack spacing={3}>
-      <form onSubmit={handleSubmit(onSubmitWs)}>
+      <form>
         <Stack spacing={2}>
+          <Controller
+            name="search_query"
+            control={control}
+            render={({ field }) =>
+              <TextField
+                {...field}
+                error={Object.entries(errors).length > 0}
+                helperText={Object.entries(errors).length > 0 && errors?.search_query.message}
+                id="outlined-textarea"
+                label="Поисковой запрос"
+                placeholder="{company} AND {positions} AND {site}"
+              />
+            }
+          />
+          <Box>
+            <LoadingButton
+              loading={loading}
+              variant="outlined"
+              onClick={handleSubmit(onTestSearchQuery)}
+            >
+              Протестировать
+            </LoadingButton>
+          </Box>
+          {compiledSearchQueries.map((query: string) => <Box>{query}</Box>)}
           <Controller
             name="companies"
             control={control}
@@ -121,7 +174,14 @@ const CreateCsvForm = () => {
             }
           />
           <Box>
-            <LoadingButton loading={loading} variant="contained" type="submit">Отправить</LoadingButton>
+            <LoadingButton
+              onClick={handleSubmit(onSubmitWs)}
+              loading={loading}
+              variant="contained"
+              type="submit"
+            >
+              Отправить
+            </LoadingButton>
           </Box>
         </Stack>
       </form>
