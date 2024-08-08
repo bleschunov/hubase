@@ -20,12 +20,12 @@ logging.basicConfig(level=logging.INFO)
 
 
 def _main(
-    search_template: str,
+    search_query_template: str,
     companies: list[str],
     sites: list[str],
     positions: list[str]
 ) -> t.Iterator[dict[str, str | int]]:
-    for url, searching_params in SearchPage(SearchQueries(search_template, companies, positions, sites), url_limit=5).found():
+    for url, searching_params in SearchPage(SearchQueries(search_query_template, companies, positions, sites), url_limit=5).found():
         try:
             md = HubaseMd(url).md
         except JinaException as err:
@@ -83,7 +83,7 @@ def get_names_and_positions_csv(
 
 
 def get_names_and_positions_csv_with_progress(
-    search_template: str,
+    search_query_template: str,
     companies: list[str],
     sites: list[str],
     positions: list[str]
@@ -91,7 +91,7 @@ def get_names_and_positions_csv_with_progress(
     headers = ["name", "position", "searched_company", "inferenced_company", "original_url", "source"]
     with HubaseCsv(headers=headers, settings=settings) as csv_:
         yield csv_.download_url
-        for person in _main(search_template, companies, sites, positions):
+        for person in _main(search_query_template, companies, sites, positions):
             csv_.persist(person)
             yield person
 
