@@ -7,6 +7,7 @@ from llm_qa.mistral import LLMClientQAMistral
 from prompt.cached import Cached
 from prompt.fs_prompt import FileSystemPrompt
 from search_page import SearchPage
+from search_queries import SearchQueries
 from settings import settings
 from word_classifications.only_people import OnlyPeople
 from word_classifications.with_company import WithCompany
@@ -15,12 +16,13 @@ from word_classifications.with_source import WithSource
 from word_classifications.word_classifications import WordClassifications
 
 def _main(
+    search_query_template: str,
     companies: list[str],
     sites: list[str],
     positions: list[str],
     logger: Logger
 ) -> t.Iterator[dict[str, str | int]]:
-    for url, searching_params in SearchPage(companies, positions, sites, logger, url_limit=5):
+    for url, searching_params in SearchPage(SearchQueries(search_query_template, companies, positions, sites), logger, url_limit=5).found():
         try:
             md = HubaseMd(url, logger).md
         except JinaException as err:
@@ -66,6 +68,7 @@ def _main(
 
 
 def get_names_and_positions_csv(
+    search_template: str,
     companies: list[str],
     sites: list[str],
     positions: list[str],
@@ -73,12 +76,13 @@ def get_names_and_positions_csv(
 ) -> str:
     headers = ["name", "position", "searched_company", "inferenced_company", "original_url", "source"]
     with HubaseCsv(headers=headers, settings=settings) as csv_:
-        for person in _main(companies, sites, positions, logger):
+        for person in _main(search_template, companies, sites, positions, logger):
             csv_.persist(person)
     return csv_.download_url
 
 
 def get_names_and_positions_csv_with_progress(
+    search_query_template: str,
     companies: list[str],
     sites: list[str],
     positions: list[str],
@@ -87,11 +91,12 @@ def get_names_and_positions_csv_with_progress(
     headers = ["name", "position", "searched_company", "inferenced_company", "original_url", "source"]
     with HubaseCsv(headers=headers, settings=settings) as csv_:
         yield csv_.download_url
-        for person in _main(companies, sites, positions, logger):
+        for person in _main(search_query_template, companies, sites, positions, logger):
             csv_.persist(person)
             yield person
 
 if __name__ == "__main__":
+    search_template = "{company} AND {positions} AND {site}"
     companies = [
         # "Север Минералс",
         # "ГК GloraX",
@@ -117,4 +122,4 @@ if __name__ == "__main__":
         "Директор по цифровой трансформации",
         "Финансовый директор"
     ]
-    get_names_and_positions_csv(companies, sites, positions)
+    get_names_and_positions_csv(search_template, companies, sites, positions)

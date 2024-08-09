@@ -19,16 +19,28 @@ import {IRow} from "../models/CsvResponse.ts";
 import {CsvResponse} from "../models/CsvResponse.ts";
 
 interface IFormInput {
+  search_query_template: string;
   companies: string;
   sites: string;
   positions: string;
 }
 
+interface SearchQueryResponse {
+  type: "error" | "success";
+  data: string | string[];
+}
+
 const MAX_CHAR_COUNT = 25;
 
 const CreateCsvForm = () => {
-  const { control, handleSubmit } = useForm({
+  const {
+    control,
+    handleSubmit,
+    formState: { errors },
+    setError,
+  } = useForm<IFormInput>({
     defaultValues: {
+      search_query_template: "{company} AND {positions} AND {site}",
       companies: "Мосстрой",
       sites: "sbis.ru",
       positions: "директор\nруководитель\nначальник\nглава",
@@ -39,17 +51,53 @@ const CreateCsvForm = () => {
   const [rows, setRows] = useState<IRow[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [logMessages, setLogMessages] = useState<string[]>([]);
+  const [compiledSearchQueries, setCompiledSearchQueries] = useState<string[]>([])
+
 
   const logMessage = (message: string) => {
     setLogMessages((prev) => [message, ...prev]);
   };
 
+  const onTestSearchQuery: SubmitHandler<IFormInput> = async (payload_data): boolean => {
+    setLoading(true)
+    const resp = await fetch(`${import.meta.env.VITE_API_BASE_URL}/search_query`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json;charset=utf-8"
+      },
+      body: JSON.stringify(payload_data.search_query_template)
+    })
+
+    const resp_data = await resp.json() as SearchQueryResponse
+
+    if (resp_data.type === "error") {
+      const error_message = resp_data.data as string
+      setCompiledSearchQueries([])
+      setError("search_query_template", { type: "validation_error", message: error_message })
+      setLoading(false)
+      return false
+    }
+    else if (resp_data.type === "success") {
+      const compiled_queries = resp_data.data as string[]
+      setCompiledSearchQueries(compiled_queries)
+      setLoading(false)
+      return true
+    }
+  }
+
 
   const onSubmitWs: SubmitHandler<IFormInput> = async (payload_data) => {
+    const is_test_success = await onTestSearchQuery(payload_data)
+
+    if (!is_test_success) {
+      return
+    }
+
     const payload: CreateCsvOptions = {
       companies: payload_data.companies.split("\n"),
       sites: payload_data.sites.split("\n"),
       positions: payload_data.positions.split("\n"),
+      search_query_template: payload_data.search_query_template,
       access_token: import.meta.env.VITE_ACCESS_TOKEN,
     };
 
@@ -99,8 +147,34 @@ const CreateCsvForm = () => {
 
   return (
     <Stack spacing={3}>
-      <form onSubmit={handleSubmit(onSubmitWs)}>
+      <form>
         <Stack spacing={2}>
+          <Stack spacing={1} sx={{ border: "solid #CCC", p: 1, borderRadius: "10px"}}>
+            <Controller
+              name="search_query_template"
+              control={control}
+              render={({ field }) =>
+                <TextField
+                  {...field}
+                  error={Object.entries(errors).length > 0}
+                  helperText={Object.entries(errors).length > 0 && errors?.search_query_template.message}
+                  id="outlined-textarea"
+                  label="Поисковой запрос"
+                  placeholder="{company} AND {positions} AND {site}"
+                />
+              }
+            />
+            <Box>
+              <LoadingButton
+                loading={loading}
+                variant="outlined"
+                onClick={handleSubmit(onTestSearchQuery)}
+              >
+                Протестировать
+              </LoadingButton>
+            </Box>
+            {compiledSearchQueries.map((query: string) => <Box>{query}</Box>)}
+          </Stack>
           <Controller
             name="companies"
             control={control}
@@ -143,7 +217,16 @@ const CreateCsvForm = () => {
               />
             )}
           />
-            <LoadingButton loading={loading} variant="contained" type="submit">Отправить</LoadingButton>
+          <Box>
+            <LoadingButton
+              onClick={handleSubmit(onSubmitWs)}
+              loading={loading}
+              variant="contained"
+              type="submit"
+            >
+              Отправить
+            </LoadingButton>
+          </Box>
         </Stack>
       </form>
       <TextField
