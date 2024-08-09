@@ -1,4 +1,3 @@
-import logging
 from logging import Logger
 import typing as t
 
@@ -7,8 +6,6 @@ import requests
 from exceptions import HuggingFaceException
 from settings import settings
 from word_classifications.abc_ import IWordClassifications
-
-logging.basicConfig(level=logging.INFO)
 
 
 class WordClassifications(IWordClassifications):

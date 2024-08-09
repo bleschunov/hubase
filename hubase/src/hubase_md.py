@@ -2,8 +2,6 @@ import json
 import logging
 import requests
 
-logging.basicConfig(level=logging.INFO)
-
 class JinaException(Exception):
     pass
 

@@ -1,8 +1,6 @@
-import logging
+from logging import Logger
 
 import googlesearch as google
-
-logging.basicConfig(level=logging.INFO)
 
 
 class SearchPage:
@@ -10,7 +8,7 @@ class SearchPage:
     site_subquery = 'site:{site}'
     positions_subquery = '({positions})'
 
-    def __init__(self, companies: list[str], positions: list[str], sites: list[str], url_limit: int = 5) -> None:
+    def __init__(self, companies: list[str], positions: list[str], sites: list[str], logger: Logger, url_limit: int = 5) -> None:
         if len(sites) == 0:
             sites.append("")
         self.__companies = companies[1:]
@@ -21,6 +19,7 @@ class SearchPage:
         self.__current_site_i = 0
         self.__urls = []
         self.__url_limit = url_limit
+        self.__logger = logger
 
     def __iter__(self) -> "SearchPage":
         return self
@@ -33,7 +32,7 @@ class SearchPage:
             if self.__current_site_i >= len(self.__sites):
                 self.__current_site_i = 0
                 self.__current_company = self.__companies.pop(0)
-                logging.info(f"Поиск для компании: {self.__current_company}")
+                self.__logger.info(f"Поиск для компании: {self.__current_company}")
 
             self.__current_site = self.__sites[self.__current_site_i]
             self.__current_site_i += 1
@@ -49,7 +48,7 @@ class SearchPage:
 
             self.__query = " AND ".join(subqueries)
 
-            logging.info(f"Делаем запрос: {self.__query}")
+            self.__logger.info(f"Делаем запрос: {self.__query}")
             self.__urls.extend(google.search(self.__query, stop=self.__url_limit))
 
         searching_params = {
