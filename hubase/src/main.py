@@ -1,7 +1,6 @@
-import logging
 import typing as t
 from pathlib import Path
-
+from logging import Logger
 from hubase_csv import HubaseCsv
 from hubase_md import HubaseMd, JinaException
 from llm_qa.mistral import LLMClientQAMistral
@@ -15,17 +14,15 @@ from word_classifications.with_position import WithPosition
 from word_classifications.with_source import WithSource
 from word_classifications.word_classifications import WordClassifications
 
-logging.basicConfig(level=logging.INFO)
-
-
 def _main(
     companies: list[str],
     sites: list[str],
-    positions: list[str]
+    positions: list[str],
+    logger: Logger
 ) -> t.Iterator[dict[str, str | int]]:
-    for url, searching_params in SearchPage(companies, positions, sites, url_limit=5):
+    for url, searching_params in SearchPage(companies, positions, sites, logger, url_limit=5):
         try:
-            md = HubaseMd(url).md
+            md = HubaseMd(url, logger).md
         except JinaException as err:
             yield {
                 "name": err,
@@ -38,14 +35,15 @@ def _main(
         else:
             company_staff = (
                 WithCompany(
-                    llm_qa=LLMClientQAMistral(),
+                    llm_qa=LLMClientQAMistral(logger),
                     prompt=Cached(FileSystemPrompt(Path("../prompts/company.txt"))),
                     inner=WithPosition(
-                        llm_qa=LLMClientQAMistral(),
+                        llm_qa=LLMClientQAMistral(logger),
                         prompt=Cached(FileSystemPrompt(Path("../prompts/position.txt"))),
                         inner=WithSource(
                             OnlyPeople(
-                                WordClassifications(md)
+                                logger,
+                                WordClassifications(md, logger)
                             )
                         )
                     )
@@ -58,7 +56,7 @@ def _main(
                 except StopIteration:
                     break
                 except Exception as err:
-                    logging.warning(f"Непредвиденная ошибка: {err}", err)
+                    logger.warning("Непредвиденная ошибка: %s", err)
                     continue
                     # TODO: в этом месте ловить ошибки и пробрасывать кастомные наверх
                 else:
@@ -70,11 +68,12 @@ def _main(
 def get_names_and_positions_csv(
     companies: list[str],
     sites: list[str],
-    positions: list[str]
+    positions: list[str],
+    logger: Logger
 ) -> str:
     headers = ["name", "position", "searched_company", "inferenced_company", "original_url", "source"]
     with HubaseCsv(headers=headers, settings=settings) as csv_:
-        for person in _main(companies, sites, positions):
+        for person in _main(companies, sites, positions, logger):
             csv_.persist(person)
     return csv_.download_url
 
@@ -82,15 +81,15 @@ def get_names_and_positions_csv(
 def get_names_and_positions_csv_with_progress(
     companies: list[str],
     sites: list[str],
-    positions: list[str]
+    positions: list[str],
+    logger: Logger
 ) -> t.Iterator[dict[str, str | int] | str]:
     headers = ["name", "position", "searched_company", "inferenced_company", "original_url", "source"]
     with HubaseCsv(headers=headers, settings=settings) as csv_:
         yield csv_.download_url
-        for person in _main(companies, sites, positions):
+        for person in _main(companies, sites, positions, logger):
             csv_.persist(person)
             yield person
-
 
 if __name__ == "__main__":
     companies = [

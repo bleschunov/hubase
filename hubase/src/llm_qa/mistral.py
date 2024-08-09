@@ -1,4 +1,4 @@
-import logging
+from logging import Logger
 
 from mistralai.client import MistralClient
 from mistralai.models.chat_completion import ChatMessage
@@ -6,21 +6,20 @@ from mistralai.models.chat_completion import ChatMessage
 from llm_qa.abc import LLMClientQA
 from settings import settings
 
-logging.basicConfig(level=logging.INFO)
-
 
 class LLMClientQAMistral(LLMClientQA):
-    def __init__(self):
+    def __init__(self, logger: Logger):
         self.__client = MistralClient(api_key=settings.mistral_api_key)
         self.__model = "mistral-large-latest"
+        self.__logger = logger
 
     def ask(self, prompt) -> str:
-        short_prompt = prompt[:97] + "..."
-        logging.info(f"Итоговый промпт: {short_prompt}")
-        logging.info(f"Делаем запрос в Mistral")
+        short_prompt = (prompt[:97].replace("\n", " ") + "...")
+        self.__logger.info(f"Итоговый промпт: {short_prompt}")
+        self.__logger.info(f"Делаем запрос в Mistral")
 
         response = self.__client.chat(model=self.__model, messages=[ChatMessage(role="user", content=prompt)])
 
-        logging.info(f"Использовано токенов: {response.usage}")
+        self.__logger.info(f"Использовано токенов: {response.usage}")
 
         return response.choices[0].message.content
