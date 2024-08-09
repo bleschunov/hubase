@@ -82,12 +82,9 @@ const CreateCsvForm = () => {
         const log_entry = row.data as string
         logMessage(log_entry);
       }
-
-
     };
 
     csvWs.onerror = (event) => {
-      console.error(event);
       logMessage("Ошибка соединения с сервером.");
     };
 
