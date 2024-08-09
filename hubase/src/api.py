@@ -1,18 +1,18 @@
+import asyncio
 import json
 import logging
 import typing as t
 from pathlib import Path
 
 from asyncer import asyncify
-from fastapi import FastAPI, HTTPException, Body
+from fastapi import FastAPI, HTTPException, WebSocket, Body
 from mistralai.exceptions import MistralAPIException
 from pydantic import BaseModel
 from starlette.middleware.cors import CORSMiddleware
 from starlette.staticfiles import StaticFiles
-from starlette.websockets import WebSocket
+from starlette.websockets import WebSocketDisconnect
 
 from exceptions import HuggingFaceException
-from helper import short
 from main import get_names_and_positions_csv, get_names_and_positions_csv_with_progress
 from prompt.fs_prompt import FileSystemPrompt
 from search_queries import SearchQueries
@@ -64,6 +64,24 @@ class UpdatePrompt(BaseModel):
     prompt_text: str
 
 
+class CsvResponse(BaseModel):
+    type: t.Literal["log", "csv_row"]
+    data: CsvRow | str
+
+
+class WebSocketLoggingHandler(logging.Handler):
+    def __init__(self, websocket: WebSocket):
+        super().__init__()
+        self.websocket = websocket
+
+    def emit(self, record: logging.LogRecord):
+        log_entry = self.format(record)
+        asyncio.run(self.__send_log(log_entry))
+
+    async def __send_log(self, log_entry: str):
+        await self.websocket.send_json(CsvResponse(type="log", data=log_entry).model_dump())
+
+
 class SearchQueryResponse(BaseModel):
     type: t.Literal["error", "success"]
     data: str | list[str]
@@ -71,12 +89,6 @@ class SearchQueryResponse(BaseModel):
 
 @app.websocket("/api/v1/csv/progress")
 async def get_csv_with_progress(ws: WebSocket) -> None:
-    def next_(gen: t.Iterator[any]) -> any:
-        try:
-            return next(gen)
-        except StopIteration:
-            return None
-
     await ws.accept()
 
     csv_options = CsvOptions.parse_obj(await ws.receive_json())
@@ -84,17 +96,33 @@ async def get_csv_with_progress(ws: WebSocket) -> None:
     if csv_options.access_token != settings.access_token:
         logging.info("Доступ запрещён.")
         await ws.close()
+        return
 
     logging.info("Доступ разрешён.")
 
-    rows = await asyncify(get_names_and_positions_csv_with_progress)(
-        companies=csv_options.companies,
-        sites=csv_options.sites,
-        positions=csv_options.positions,
-        search_query_template=csv_options.search_query_template
-    )
+    logging_handler = WebSocketLoggingHandler(ws)
+    formatter = logging.Formatter('%(asctime)s | %(message)s', "%H:%M:%S")
+    logging_handler.setFormatter(formatter)
+
+    logger = logging.getLogger(f"ws_{hex(id(ws))}")
+    logger.setLevel(logging.INFO)
+    logger.addHandler(logging_handler)
 
     try:
+        rows = await asyncify(get_names_and_positions_csv_with_progress)(
+            companies=csv_options.companies,
+            sites=csv_options.sites,
+            positions=csv_options.positions,
+            logger=logger,
+            search_query_template=csv_options.search_query_template,
+        )
+
+        def next_(gen: t.Iterator[any]) -> any:
+            try:
+                return next(gen)
+            except StopIteration:
+                return None
+
         download_link = await asyncify(next_)(rows)
         while True:
             row = await asyncify(next_)(rows)
@@ -103,23 +131,25 @@ async def get_csv_with_progress(ws: WebSocket) -> None:
                 break
 
             row_dto = CsvRow(
-                name=short(row["name"]),
-                position=short(row["position"]),
-                searched_company=short(row["searched_company"]),
-                inferenced_company=short(row["inferenced_company"]),
+                name=row["name"],
+                position=row["position"],
+                searched_company=row["searched_company"],
+                inferenced_company=row["inferenced_company"],
                 original_url=row["original_url"],
-                short_original_url=short(row["original_url"]),
-                source=short(row["source"]),
+                short_original_url=row["original_url"],
+                source=row["source"],
                 download_link=download_link
             )
 
-            await ws.send_json(row_dto.model_dump())
+            csv_response = CsvResponse(type="csv_row", data=row_dto)
+            await ws.send_json(csv_response.model_dump())
 
         await ws.close()
+    except WebSocketDisconnect:
+        pass
     except HuggingFaceException as err:
         raise HTTPException(status_code=403, detail=str(err))
     except MistralAPIException as err:
-        # 'Status: 403. Message: {"message":"Inactive subscription or usage limit reached"}'
         msg = json.loads("{" + err.message.split("{")[-1])
         raise HTTPException(status_code=403, detail=f"Ошибка MistralAPI: {msg['message']}")
 
@@ -137,7 +167,6 @@ def get_csv(csv_options: CsvOptions) -> CsvDownloadLink:
     except HuggingFaceException as err:
         raise HTTPException(status_code=403, detail=str(err))
     except MistralAPIException as err:
-        # 'Status: 403. Message: {"message":"Inactive subscription or usage limit reached"}'
         msg = json.loads("{" + err.message.split("{")[-1])
         raise HTTPException(status_code=403, detail=f"Ошибка MistralAPI: {msg['message']}")
     return CsvDownloadLink(download_link=f"http://{settings.download_host}:{settings.port}/static/results/{download_link}")
