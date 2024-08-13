@@ -1,5 +1,6 @@
 import {
   Box,
+  Divider,
   Link,
   Paper,
   Stack,
@@ -12,11 +13,11 @@ import {
   TextField,
 } from "@mui/material";
 import LoadingButton from '@mui/lab/LoadingButton';
-import { Controller, SubmitHandler, useForm } from "react-hook-form";
-import { CreateCsvOptions } from "../models/CreateCsvOptions.ts";
+import {Controller, SubmitHandler, useForm} from "react-hook-form";
+import {CreateCsvOptions} from "../models/CreateCsvOptions.ts";
 import {useState} from "react";
-import {IRow} from "../models/CsvResponse.ts";
-import {CsvResponse} from "../models/CsvResponse.ts";
+import {CsvResponse, IRow} from "../models/CsvResponse.ts";
+import PromptForm from "./PromptForm.tsx";
 
 interface IFormInput {
   search_query_template: string;
@@ -52,7 +53,8 @@ const CreateCsvForm = () => {
   const [loading, setLoading] = useState<boolean>(false);
   const [logMessages, setLogMessages] = useState<string[]>([]);
   const [compiledSearchQueries, setCompiledSearchQueries] = useState<string[]>([])
-
+  const [companyPromptContext, setCompanyPromptContext] = useState<string>("")
+  const [positionPromptContext, setPositionPromptContext] = useState<string>("")
 
   const logMessage = (message: string) => {
     setLogMessages((prev) => [message, ...prev]);
@@ -99,6 +101,8 @@ const CreateCsvForm = () => {
       positions: payload_data.positions.split("\n"),
       search_query_template: payload_data.search_query_template,
       access_token: import.meta.env.VITE_ACCESS_TOKEN,
+      company_prompt: companyPromptContext,
+      position_prompt: positionPromptContext
     };
 
     const csvWs = new WebSocket(`${import.meta.env.VITE_API_BASE_URL_WS}/csv/progress`);
@@ -147,6 +151,11 @@ const CreateCsvForm = () => {
 
   return (
     <Stack spacing={3}>
+      <PromptForm
+        setCompanyPromptContext={setCompanyPromptContext}
+        setPositionPromptContext={setPositionPromptContext}
+      />
+      <Divider />
       <form>
         <Stack spacing={2}>
           <Stack spacing={1} sx={{ border: "solid #CCC", p: 1, borderRadius: "10px"}}>

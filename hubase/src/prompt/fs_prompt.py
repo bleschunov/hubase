@@ -22,7 +22,7 @@ class FileSystemPrompt(Prompt):
         return new_prompt
 
     def get_and_compile(self, **kwargs) -> str:
-        return self.compile(self.get())
+        return self.compile(self.get(), **kwargs)
 
     def compile(self, prompt: str, **kwargs) -> str:
         return prompt.format(**kwargs)

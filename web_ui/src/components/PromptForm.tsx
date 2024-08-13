@@ -9,7 +9,7 @@ interface FormInput {
   prompt_text: string;
 }
 
-const PromptForm = () => {
+const PromptForm = ({setCompanyPromptContext, setPositionPromptContext}) => {
   const [loading, setLoading] = useState<boolean>(false)
 
   const isContainsVariables = value => {
@@ -46,39 +46,52 @@ const PromptForm = () => {
   })
 
   useEffect(() => {
-    Promise.all([
-      fetch(`${import.meta.env.VITE_API_BASE_URL}/prompt/company`)
-        .then(resp => resp.json())
-        .then((prompt: Prompt) => setCompanyValue("prompt_text", prompt.prompt_text)),
-      fetch(`${import.meta.env.VITE_API_BASE_URL}/prompt/position`)
-        .then(resp => resp.json())
-        .then((prompt: Prompt) => setPositionValue("prompt_text", prompt.prompt_text)),
-    ])
+    const promises = []
+
+    const company_value = localStorage.getItem("company")
+    if (company_value === null) {
+      promises.push(
+        fetch(`${import.meta.env.VITE_API_BASE_URL}/prompt/company`)
+          .then(resp => resp.json())
+          .then((prompt: Prompt) => {
+            setCompanyValue("prompt_text", prompt.prompt_text)
+            setCompanyPromptContext(prompt.prompt_text)
+          })
+      )
+    } else {
+      setCompanyValue("prompt_text", company_value)
+      setCompanyPromptContext(company_value)
+    }
+
+    const position_value = localStorage.getItem("position");
+    if (position_value === null) {
+      promises.push(
+        fetch(`${import.meta.env.VITE_API_BASE_URL}/prompt/position`)
+          .then(resp => resp.json())
+          .then((prompt: Prompt) => {
+            setPositionValue("prompt_text", prompt.prompt_text)
+            setPositionPromptContext(prompt.prompt_text)
+          }),
+      )
+    } else {
+      setPositionValue("prompt_text", position_value)
+      setPositionPromptContext(position_value)
+    }
+
+    Promise.all(promises)
   }, [])
 
   // const onUpdateCompanyPrompt: SubmitHandler<FormInput> = (payload)
 
-  const onUpdatePrompt = (payload: FormInput, value_cb, error_cb) => {
+  const onUpdatePrompt = (payload: FormInput, valueCb, errorCb) => {
     const error = isContainsVariables(payload.prompt_text)
     if (error !== true) {
-      error_cb(error)
+      errorCb(error)
       return
     }
 
-    fetch(
-      `${import.meta.env.VITE_API_BASE_URL}/prompt`,
-      {
-        method: "PATCH",
-        body: JSON.stringify(payload),
-        headers: {
-          "Content-Type": "application/json;charset=utf-8"
-        },
-      }
-    )
-      .then(resp => resp.json())
-      .then((prompt: Prompt) => value_cb("prompt_text", prompt.prompt_text))
-      .then(() => setLoading(false))
-
+    valueCb(payload.prompt_text)
+    localStorage.setItem(payload.name, payload.prompt_text)
   }
 
   const onResetPrompt = (payload: FormInput, cb) => {
@@ -90,7 +103,10 @@ const PromptForm = () => {
       }
     )
       .then(resp => resp.json())
-      .then((prompt: Prompt) => cb("prompt_text", prompt.prompt_text))
+      .then((prompt: Prompt) => {
+        cb("prompt_text", prompt.prompt_text)
+        localStorage.setItem(payload.name, prompt.prompt_text)
+      })
       .then(() => setLoading(false))
   }
 
@@ -126,7 +142,7 @@ const PromptForm = () => {
               variant="contained"
               onClick={companyHandleSubmit(payload => onUpdatePrompt(
                 payload,
-                setCompanyValue,
+                (value: string) => setCompanyPromptContext(value),
                 (msg: string) => setCompanyError("prompt_text", {"type": "not_set_variable", "message": msg})
               ))}
             >
@@ -165,7 +181,7 @@ const PromptForm = () => {
                 variant="contained"
                 onClick={positionHandleSubmit(payload => onUpdatePrompt(
                   payload,
-                  setPositionValue,
+                  (value: string) => setPositionPromptContext(value),
                   (msg: string) => setPositionError("prompt_text", {"type": "not_set_variable", "message": msg})
                 ))}
               >

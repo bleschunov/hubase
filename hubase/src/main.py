@@ -1,12 +1,12 @@
 import logging
 import typing as t
-from pathlib import Path
 from logging import Logger
+
+from api.model import CsvOptions
 from hubase_csv import HubaseCsv
 from hubase_md import HubaseMd, JinaException
 from llm_qa.mistral import LLMClientQAMistral
-from prompt.cached import Cached
-from prompt.fs_prompt import FileSystemPrompt
+from prompt.in_memory import InMemoryPrompt
 from search_page import SearchPage
 from search_queries import SearchQueries
 from settings import settings
@@ -16,14 +16,19 @@ from word_classifications.with_position import WithPosition
 from word_classifications.with_source import WithSource
 from word_classifications.word_classifications import WordClassifications
 
+
 def _main(
-    search_query_template: str,
-    companies: list[str],
-    sites: list[str],
-    positions: list[str],
+    csv_options: CsvOptions,
     logger: Logger
 ) -> t.Iterator[dict[str, str | int]]:
-    for url, searching_params in SearchPage(SearchQueries(search_query_template, companies, positions, sites), logger, url_limit=5).found():
+    search_queries = SearchQueries(
+        csv_options.search_query_template,
+        csv_options.companies,
+        csv_options.positions,
+        csv_options.sites
+    )
+
+    for url, searching_params in SearchPage(search_queries, logger, url_limit=5).found():
         try:
             md = HubaseMd(url, logger).md
         except JinaException as err:
@@ -39,10 +44,10 @@ def _main(
             company_staff = (
                 WithCompany(
                     llm_qa=LLMClientQAMistral(logger),
-                    prompt=Cached(FileSystemPrompt(Path("../prompts/company.txt"))),
+                    prompt=InMemoryPrompt(csv_options.company_prompt),
                     inner=WithPosition(
                         llm_qa=LLMClientQAMistral(logger),
-                        prompt=Cached(FileSystemPrompt(Path("../prompts/position.txt"))),
+                        prompt=InMemoryPrompt(csv_options.position_prompt),
                         inner=WithSource(
                             OnlyPeople(
                                 logger,
@@ -83,16 +88,13 @@ def get_names_and_positions_csv(
 
 
 def get_names_and_positions_csv_with_progress(
-    search_query_template: str,
-    companies: list[str],
-    sites: list[str],
-    positions: list[str],
+    csv_options: CsvOptions,
     logger: Logger
 ) -> t.Iterator[dict[str, str | int] | str]:
     headers = ["name", "position", "searched_company", "inferenced_company", "original_url", "source"]
     with HubaseCsv(headers=headers, settings=settings) as csv_:
         yield csv_.download_url
-        for person in _main(search_query_template, companies, sites, positions, logger):
+        for person in _main(csv_options, logger):
             csv_.persist(person)
             yield person
 
