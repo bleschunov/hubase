@@ -9,7 +9,7 @@ from word_classifications.abc_ import IWordClassifications
 
 
 class WordClassifications(IWordClassifications):
-    __api_url = "https://api-inference.huggingface.co/models/51la5/roberta-large-NER"
+    __api_url = settings.hugging_face_ner_api_url
     __headers = {"Authorization": f"Bearer {settings.hugging_face_token}"}
 
     def __init__(self, text: str, logger: Logger, batch_size: int = 514) -> None:
@@ -36,7 +36,11 @@ class WordClassifications(IWordClassifications):
             raw_word_classifications = self.__call_huggingface_or_raise(
                 self.__api_url,
                 self.__headers,
-                {"inputs": current_batch, "options": {"wait_for_model": True}}
+                {
+                    "inputs": current_batch,
+                    "options": {"wait_for_model": True},
+                    "parameters": {"aggregation_strategy": "simple"}
+                }
             )
 
             for wc in raw_word_classifications:
