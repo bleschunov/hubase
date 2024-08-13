@@ -20,7 +20,7 @@ class SearchQueries:
         self.__template = template
         self.__companies = companies
         self.__positions = positions
-        self.__sites = sites if len(sites) > 0 else ""
+        self.__sites = sites if len(sites) > 0 else [""]
 
         self.__is_plural_pos_in = "{positions}" in self.__template
         self.__is_singular_pos_in = "{position}" in self.__template

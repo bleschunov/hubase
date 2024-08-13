@@ -1,3 +1,4 @@
+import logging
 import typing as t
 from pathlib import Path
 from logging import Logger
@@ -96,9 +97,10 @@ def get_names_and_positions_csv_with_progress(
             yield person
 
 if __name__ == "__main__":
+    logger = logging.getLogger(__name__)
     search_template = "{company} AND {positions} AND {site}"
     companies = [
-        # "Север Минералс",
+        "Север Минералс",
         # "ГК GloraX",
         # "ГК Seven Suns Development",
         # "ПИК",
@@ -108,10 +110,10 @@ if __name__ == "__main__":
         # "Мосстрой",
         # "Capital Group",
         # "ЦДС",
-        "Балтика"
+        # "Балтика"
     ]
     sites = [
-        # "cfo-russia.ru",
+        "cfo-russia.ru",
         # "companies.rbc.ru"
     ]
     positions = [
@@ -122,4 +124,4 @@ if __name__ == "__main__":
         "Директор по цифровой трансформации",
         "Финансовый директор"
     ]
-    get_names_and_positions_csv(search_template, companies, sites, positions)
+    get_names_and_positions_csv(search_template, companies, sites, positions, logger)
