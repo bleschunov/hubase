@@ -1,8 +1,7 @@
 import './App.css'
 import CreateCsvForm from "./components/CreateCsvForm.tsx";
 import Header from "./components/Header.tsx";
-import {Container, Divider, Stack} from "@mui/material";
-import PromptForm from "./components/PromptForm.tsx";
+import {Container, Stack} from "@mui/material";
 
 function App() {
   return (
@@ -10,8 +9,6 @@ function App() {
       <Header />
       <Container>
         <Stack spacing={5}>
-          <PromptForm />
-          <Divider />
           <CreateCsvForm />
         </Stack>
       </Container>

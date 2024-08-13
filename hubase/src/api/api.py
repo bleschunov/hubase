@@ -12,6 +12,7 @@ from starlette.middleware.cors import CORSMiddleware
 from starlette.staticfiles import StaticFiles
 from starlette.websockets import WebSocketDisconnect
 
+from api.model import CsvResponse, CsvOptions, CsvRow, CsvDownloadLink, Prompt, UpdatePrompt
 from exceptions import HuggingFaceException
 from main import get_names_and_positions_csv, get_names_and_positions_csv_with_progress
 from prompt.fs_prompt import FileSystemPrompt
@@ -31,42 +32,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-
-class CsvOptions(BaseModel):
-    companies: list[str]
-    sites: list[str]
-    positions: list[str]
-    search_query_template: str
-    access_token: str
-
-
-class CsvDownloadLink(BaseModel):
-    download_link: str
-
-
-class CsvRow(CsvDownloadLink):
-    name: str
-    position: str
-    searched_company: str
-    inferenced_company: str
-    original_url: str
-    short_original_url: str
-    source: str
-
-
-class Prompt(BaseModel):
-    prompt_text: str
-
-
-class UpdatePrompt(BaseModel):
-    name: str
-    prompt_text: str
-
-
-class CsvResponse(BaseModel):
-    type: t.Literal["log", "csv_row"]
-    data: CsvRow | str
 
 
 class WebSocketLoggingHandler(logging.Handler):
@@ -110,11 +75,8 @@ async def get_csv_with_progress(ws: WebSocket) -> None:
 
     try:
         rows = await asyncify(get_names_and_positions_csv_with_progress)(
-            companies=csv_options.companies,
-            sites=csv_options.sites,
-            positions=csv_options.positions,
+            csv_options=csv_options,
             logger=logger,
-            search_query_template=csv_options.search_query_template,
         )
 
         def next_(gen: t.Iterator[any]) -> any:
