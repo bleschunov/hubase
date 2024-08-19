@@ -98,7 +98,6 @@ async def get_csv_with_progress(ws: WebSocket) -> None:
                 searched_company=row["searched_company"],
                 inferenced_company=row["inferenced_company"],
                 original_url=row["original_url"],
-                short_original_url=row["original_url"],
                 source=row["source"],
                 download_link=download_link
             )

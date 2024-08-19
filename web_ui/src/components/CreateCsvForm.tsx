@@ -126,24 +126,16 @@ const CreateCsvForm = () => {
 
             if (row.type === "csv_row") {
                 const csv_row = row.data as IRow
-                console.log(csv_row);
 
-                // Создаём уникальный id для строки
-                const id = `${csv_row.name}-${Date.now()}`;
-
-                // Добавляем id в объект
-                const rowWithId = {...csv_row, id};
-
-                setCsvDownloadLink(rowWithId.download_link);
-                setRows((prev) => [rowWithId, ...prev]);
+                setCsvDownloadLink(csv_row.download_link);
+                setRows((prev) => [csv_row, ...prev]);
             } else if (row.type === "log") {
                 const log_entry = row.data as string
                 logMessage(log_entry);
             }
         };
 
-
-        csvWs.onerror = (event) => {
+        csvWs.onerror = () => {
             logMessage("Ошибка соединения с сервером.");
         };
 
@@ -275,16 +267,16 @@ const CreateCsvForm = () => {
                         </TableRow>
                     </TableHead>
                     <TableBody>
-                        {rows.map((row) => (
-                            <TableRow key={`${row.id}`}
+                        {rows.map((row, index) => (
+                            <TableRow key={index}
                                       sx={{'&:last-child td, &:last-child th': {border: 0}}}>
                                 <TableCell component="th"
                                            scope="row">{truncateString(row.name, MAX_CHAR_COUNT)}</TableCell>
                                 <TableCell>{truncateString(row.position, MAX_CHAR_COUNT)}</TableCell>
                                 <TableCell>{truncateString(row.searched_company, MAX_CHAR_COUNT)}</TableCell>
                                 <TableCell>{truncateString(row.inferenced_company, MAX_CHAR_COUNT)}</TableCell>
-                                <TableCell><Link href={row.original_url}>
-                                    {truncateString(row.short_original_url, MAX_CHAR_COUNT)}</Link></TableCell>
+                                <TableCell><Link href={row.original_url} target="_blank">
+                                    {row.original_url}</Link></TableCell>
                                 <TableCell>{row.source}</TableCell>
                             </TableRow>
                         ))}
