@@ -23,7 +23,6 @@ class CsvRow(CsvDownloadLink):
     searched_company: str
     inferenced_company: str
     original_url: str
-    short_original_url: str
     source: str
 
 
