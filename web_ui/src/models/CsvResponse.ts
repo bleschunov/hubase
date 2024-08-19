@@ -1,4 +1,5 @@
 interface IRow {
+  id: string;
   name: string;
   position: string;
   searched_company: string;
