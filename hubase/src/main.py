@@ -15,6 +15,7 @@ from word_classifications.with_company import WithCompany
 from word_classifications.with_position import WithPosition
 from word_classifications.with_source import WithSource
 from word_classifications.word_classifications import WordClassifications
+from word_classifications.word_classifications_with_gpt import WordClassificationsWithGPT
 
 
 def _main(
@@ -51,7 +52,7 @@ def _main(
                         inner=WithSource(
                             OnlyPeople(
                                 logger,
-                                WordClassifications(md, logger)
+                                WordClassificationsWithGPT(md, logger)
                             )
                         )
                     )

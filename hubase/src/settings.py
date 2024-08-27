@@ -12,6 +12,7 @@ class Settings(BaseSettings):
     port: int = Field(8080)
     cors_origins: str = Field("http://localhost:5173")
     access_token: str
+    openai_api_key: str
 
 
 settings = Settings()
