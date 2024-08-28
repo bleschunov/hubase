@@ -1,91 +1,147 @@
-from logging import Logger
-import typing as t
-import openai
 import json
-from settings import settings
+import typing as t
+from dataclasses import dataclass
+from logging import Logger
+
+from openai import OpenAI
+
 from word_classifications.abc_ import IWordClassifications
 
 
+@dataclass(frozen=True)
+class WordClassification:
+    name: str
+    source: str
+
+
 class WordClassificationsWithGPT(IWordClassifications):
-    __api_key = settings.openai_api_key
+    def __init__(
+        self,
+        text: str,
+        prompt_template: str,
+        api_key: str,
+        logger: Logger,
+        *,
+        batch_size: int = 2000
+    ) -> None:
+        if "{input}" not in prompt_template:
+            raise ValueError("Переменная {input} должна быть в промпте.")
 
-    def __init__(self, text: str, logger: Logger, batch_size: int = 2000) -> None:
         self.__text = text
-        self.__batch_size = batch_size
-        self.__text_batches = []
-        self.__word_classifications: list[dict] = []
-        self.__current_batch_i = 0
+        self.__prompt_template = prompt_template
+        self.__api_key = api_key
+        self.__client = OpenAI(api_key=self.__api_key)
         self.__logger = logger
-        openai.api_key = self.__api_key
+        self.__batch_size = batch_size
 
-    def __iter__(self) -> t.Iterator[dict]:
-        self.__text_batches = self.__split_text(text=self.__text, batch_size=self.__batch_size)
-        return self
+    def iter(self) -> t.Iterator[WordClassification]:
+        for batch in self.__text_batches():
+            prompt = self.__prompt_template.format(input=batch)
 
-    def __next__(self) -> dict:
-        while len(self.__word_classifications) == 0:
-            if self.__current_batch_i >= len(self.__text_batches):
-                raise StopIteration()
+            response = self.__safely_call_gpt(prompt)
+            self.__logger.info(f"Получен ответ от GPT-4: {response[:22] + '...'}")
 
-            current_batch = self.__text_batches[self.__current_batch_i]
-            self.__current_batch_i += 1
+            names = self.__parse_gpt_response(response)
 
-            self.__logger.info(f"Делаем запрос в GPT-4. Батч {self.__current_batch_i}/{len(self.__text_batches)}")
-            raw_word_classifications = self.__call_gpt_or_raise(current_batch)
+            for name in names:
+                yield WordClassification(
+                    name=name,
+                    source=batch,
+                )
 
-            for wc in raw_word_classifications:
-                wc["original_text"] = current_batch
+    def __text_batches(self) -> t.Iterator[str]:
+        for i in range(0, len(self.__text), self.__batch_size):
+            yield self.__text[i:i + self.__batch_size]
 
-            self.__word_classifications.extend(raw_word_classifications)
-
-        return self.__word_classifications.pop(0)
-
-    def __split_text(self, text: str, batch_size: int) -> list[str]:
-        batches = []
-        for i in range(0, len(text), batch_size):
-            batches.append(text[i:i + batch_size])
-        return batches
-
-    def __call_gpt_or_raise(self, text: str) -> t.List[dict]:
+    def __safely_call_gpt(self, prompt: str) -> str:
         try:
-            response = openai.ChatCompletion.create(
+            response = self.__client.chat.completions.create(
                 model="gpt-4",
                 messages=[
-                    {f"Проанализируй текст, и выдели из него Имена сотрудников компании."
-                    f" Отвечай в формате JSON. Каждый элемент должен быть объектом со следующими полями: "
-                    f"'name', 'position', 'searched_company', 'inferenced_company', 'original_url', 'source'."
-                    f" Текст для анализа: '{text}'"}
+                    {
+                        "role": "user",
+                        "content": prompt,
+                    }
                 ],
-                max_tokens=1000,
-                temperature=0.1
+                temperature=0,
             )
 
-            content = response['choices'][0]['message']['content'].strip()
-            self.__logger.info(f"Получен ответ от GPT-4: {content}")
-            classifications = self.__parse_gpt_response(content)
-            return classifications
         except Exception as e:
             self.__logger.warning(f"Ошибка при запросе к GPT-4: {str(e)}")
             raise e
 
-    def __parse_gpt_response(self, response: str) -> t.List[dict]:
-        response = response.strip()
+        else:
+            return response.choices[0].message.content.strip()
+
+    def __parse_gpt_response(self, response: str) -> list[str]:
         try:
-            if not response:
-                raise ValueError("Ответ пустой")
-
-            if not (response.startswith('[') and response.endswith(']')):
-                raise ValueError("Некорректный формат ответа от GPT-4")
-
-            parsed_response = json.loads(response)
-            if isinstance(parsed_response, list):
-                return parsed_response
-            else:
-                raise ValueError("Некорректный формат ответа от GPT-4")
+            response = json.loads(response)
         except json.JSONDecodeError as e:
-            self.__logger.error(f"Ошибка при разборе ответа от GPT-4: {str(e)}")
+            self.__logger.error(f"Ошибка. От GPT пришёл не JSON.")
             raise e
 
+        if not isinstance(response, list):
+            self.__logger.error(f"Ошибка. Ответ GPT это не массив строк, как ожидалось.")
+            raise ValueError("GPT ответила не в ожидаемом формате")
+
+        return response
+
+
 if __name__ == "__main__":
-    for classification in WordClassificationsWithGPT("Дима работает в Apple и встречается с Катей"):
+    import logging
+
+    logger = logging.getLogger(__name__)
+    logger.setLevel("INFO")
+
+    text = """Вторая секция началась с КРУГЛОГО СТОЛА «Роль контроллинга в оптимизации бизнес-процессов». Среди 
+спикеров: Мария Давыдкина, руководитель отдела организационного развития и бизнес-процессов, РАСУ, Росатом 
+(модератор); Елена Шипилова, финансовый директор, Багерстат РУС; Иван Чорба, заместитель директора департамента 
+экономики и контроллинга, Росэнергоатом; Михаил Наталенко, заместитель генерального директора по финансам и 
+экономике, Р-Альянс; Юлия Максакова, директор, ARKA Merchants Ltd, Ирландия. Они обсудили следующие темы:
+"""
+
+    prompt_template = """Найди во входном тексте имена и фамилии.
+Пропускай имена без фамилии или фамилии без имени.
+Ответ напиши в виде JSON массива. Если в тексте нет имен и фамилий, напиши пустой JSON массив.
+Кроме JSON ничего не пиши.
+
+Пример 1. 
+Вход: 
+Первая секция «Повышение эффективности контроллинга в условиях быстро меняющейся экономической ситуации» началась с 
+доклада Юлии Максаковой, директора, ARKA Merchants Ltd, Ирландия, о преодолении кризиса 2022-2023 годов с помощью 
+операционного планирования. Эксперт рассмотрела проблемы предприятия, попавшего под санкционные требования ЕС, и 
+отметила основные драйверы бизнес-процесса в упаковочном бизнесе. Это OEE (операционная эффективность оборудования), 
+управление запасами и расходы на конверсию. Также Юлия поделилась инструментами для решения возникших сложностей и 
+перечислила задачи и KPI компании на 2023 год.
+
+Денис Петренчук, начальник управления интегрированного планирования и контроллинга, Газпром нефть, поделился опытом 
+повышения операционной эффективности с помощью контроллинга. Спикер привел краткий обзор существующих определений и 
+концепций контроллинга и рассказал про эволюцию подходов к контроллингу в условиях постоянных изменений. Затем Денис 
+рассмотрел использование КПЭ как инструмента повышения операционной эффективности в цепях поставок. «КПЭ ЦДС, 
+методология которых сформирована и прошла апробацию, подлежат формализации в виде цифровых паспортов, учету и 
+согласованию ответственными лицами», – отметил докладчик.
+Выход: 
+["Юлия Максакова", "Денис Петренчук"]
+
+Пример 2.
+Вход:
+17 августа 2023 года в Москве в пятнадцатый раз прошла Конференция «Корпоративный контроллинг» в формате онлайн. 
+Мероприятие было организовано группой Prosperity Media при поддержке портала CFO Russia. Представляем вашему вниманию 
+отчет о мероприятии.
+
+Чтобы приобрести материалы конференции, звоните по телефону +7 (495) 971-92-18 или пишите на электронный адрес 
+events@cfo-russia.ru.
+Выход:
+[]
+
+Вход: {input}
+Выход:
+"""
+
+    for classification in WordClassificationsWithGPT(
+        text=text,
+        prompt_template=prompt_template,
+        api_key="",
+        logger=logger
+    ).iter():
         print(classification)

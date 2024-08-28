@@ -5,23 +5,17 @@ from logging import Logger
 from api.model import CsvOptions
 from hubase_csv import HubaseCsv
 from hubase_md import HubaseMd, JinaException
-from llm_qa.mistral import LLMClientQAMistral
-from prompt.in_memory import InMemoryPrompt
+from model import Person
 from search_page import SearchPage
 from search_queries import SearchQueries
 from settings import settings
-from word_classifications.only_people import OnlyPeople
-from word_classifications.with_company import WithCompany
-from word_classifications.with_position import WithPosition
-from word_classifications.with_source import WithSource
-from word_classifications.word_classifications import WordClassifications
 from word_classifications.word_classifications_with_gpt import WordClassificationsWithGPT
 
 
 def _main(
     csv_options: CsvOptions,
     logger: Logger
-) -> t.Iterator[dict[str, str | int]]:
+) -> t.Iterator[Person]:
     search_queries = SearchQueries(
         csv_options.search_query_template,
         csv_options.companies,
@@ -32,6 +26,7 @@ def _main(
     for url, searching_params in SearchPage(search_queries, logger, url_limit=5).found():
         try:
             md = HubaseMd(url, logger).md
+
         except JinaException as err:
             yield {
                 "name": err,
@@ -41,27 +36,22 @@ def _main(
                 "original_url": url,
                 "source": None,
             }
+
         else:
-            company_staff = (
-                WithCompany(
-                    llm_qa=LLMClientQAMistral(logger),
-                    prompt=InMemoryPrompt(csv_options.company_prompt),
-                    inner=WithPosition(
-                        llm_qa=LLMClientQAMistral(logger),
-                        prompt=InMemoryPrompt(csv_options.position_prompt),
-                        inner=WithSource(
-                            OnlyPeople(
-                                logger,
-                                WordClassificationsWithGPT(md, logger)
-                            )
-                        )
-                    )
-                )
-            )
-            company_staff_iter = iter(company_staff)
+            with open("../prompts/get_names_from_text.txt") as fd:
+                prompt_template = fd.read()
+
+            company_staff = WordClassificationsWithGPT(
+                md,
+                prompt_template,
+                settings.openai_api_key,
+                logger,
+                batch_size=256,
+            ).iter()
+
             while True:
                 try:
-                    person = next(company_staff_iter)
+                    wc = next(company_staff)
                 except StopIteration:
                     break
                 except Exception as err:
@@ -69,21 +59,23 @@ def _main(
                     continue
                     # TODO: в этом месте ловить ошибки и пробрасывать кастомные наверх
                 else:
-                    person["original_url"] = url
-                    person["searched_company"] = searching_params["company"]
-                    yield person
+                    yield Person(
+                        name=wc.name,
+                        position="-",
+                        searched_company=searching_params["company"],
+                        inferenced_company="-",
+                        original_url=url,
+                        source=wc.source,
+                    )
 
 
 def get_names_and_positions_csv(
-    search_template: str,
-    companies: list[str],
-    sites: list[str],
-    positions: list[str],
+    csv_options: CsvOptions,
     logger: Logger
 ) -> str:
     headers = ["name", "position", "searched_company", "inferenced_company", "original_url", "source"]
     with HubaseCsv(headers=headers, settings=settings) as csv_:
-        for person in _main(search_template, companies, sites, positions, logger):
+        for person in _main(csv_options, logger):
             csv_.persist(person)
     return csv_.download_url
 
@@ -127,4 +119,15 @@ if __name__ == "__main__":
         "Директор по цифровой трансформации",
         "Финансовый директор"
     ]
-    get_names_and_positions_csv(search_template, companies, sites, positions, logger)
+
+    csv_options = CsvOptions(
+        companies=companies,
+        sites=sites,
+        positions=positions,
+        search_query_template=search_template,
+        access_token="",
+        company_prompt="",
+        position_prompt="",
+    )
+
+    get_names_and_positions_csv(csv_options, logger)
