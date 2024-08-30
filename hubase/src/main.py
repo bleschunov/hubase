@@ -79,6 +79,17 @@ def get_names_and_positions_csv(
             csv_.persist(person)
     return csv_.download_url
 
+#
+# def get_names_and_positions_csv_with_progress(
+#     csv_options: CsvOptions,
+#     logger: Logger
+# ) -> t.Iterator[dict[str, str | int] | str]:
+#     headers = ["name", "position", "searched_company", "inferenced_company", "original_url", "source"]
+#     with HubaseCsv(headers=headers, settings=settings) as csv_:
+#         yield csv_.download_url
+#         for person in _main(csv_options, logger):
+#             csv_.persist(person)
+#             yield person
 
 def get_names_and_positions_csv_with_progress(
     csv_options: CsvOptions,
@@ -87,9 +98,16 @@ def get_names_and_positions_csv_with_progress(
     headers = ["name", "position", "searched_company", "inferenced_company", "original_url", "source"]
     with HubaseCsv(headers=headers, settings=settings) as csv_:
         yield csv_.download_url
+        lead_count = 0
+        max_leads = csv_options.max_leads
+
         for person in _main(csv_options, logger):
+            if lead_count >= max_leads:
+                break
             csv_.persist(person)
             yield person
+            lead_count += 1
+
 
 if __name__ == "__main__":
     logger = logging.getLogger(__name__)

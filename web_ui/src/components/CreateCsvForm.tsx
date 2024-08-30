@@ -24,6 +24,7 @@ interface IFormInput {
     companies: string;
     sites: string;
     positions: string;
+    max_leads: number;
 }
 
 interface SearchQueryResponse {
@@ -45,6 +46,7 @@ const CreateCsvForm = () => {
             companies: "Мосстрой",
             sites: "sbis.ru",
             positions: "директор\nруководитель\nначальник\nглава",
+            max_leads: 10
         },
     });
 
@@ -93,6 +95,7 @@ const CreateCsvForm = () => {
         if (!is_test_success) {
             return
         }
+        console.log(payload_data.max_leads);
 
         const payload: CreateCsvOptions = {
             companies: payload_data.companies.split("\n"),
@@ -101,7 +104,8 @@ const CreateCsvForm = () => {
             search_query_template: payload_data.search_query_template,
             access_token: import.meta.env.VITE_ACCESS_TOKEN,
             company_prompt: companyPromptContext,
-            position_prompt: positionPromptContext
+            position_prompt: positionPromptContext,
+            max_leads: payload_data.max_leads
         };
 
         const csvWs = new WebSocket(`${import.meta.env.VITE_API_BASE_URL_WS}/csv/progress`);
@@ -222,6 +226,21 @@ const CreateCsvForm = () => {
                                 placeholder="Директор"
                                 multiline
                                 rows={4}
+                            />
+                        )}
+                    />
+                    <Controller
+                        name="max_leads"
+                        control={control}
+                        render={({ field }) => (
+                            <TextField
+                                {...field}
+                                id="outlined-number"
+                                label="Максимальное количество лидов"
+                                type="number"
+                                InputLabelProps={{
+                                    shrink: true,
+                                }}
                             />
                         )}
                     />

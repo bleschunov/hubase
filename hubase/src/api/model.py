@@ -11,6 +11,7 @@ class CsvOptions(BaseModel):
     access_token: str
     company_prompt: str
     position_prompt: str
+    max_leads: int
 
 
 class CsvDownloadLink(BaseModel):
