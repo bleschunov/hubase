@@ -1,19 +1,15 @@
-import logging
 import typing as t
 from logging import Logger
 
 from api.model import CsvOptions
 from hubase_csv import HubaseCsv
 from hubase_md import HubaseMd, JinaException
-from llm_qa.mistral import LLMClientQAMistral
 from model import CSVRow
-from prompt.in_memory import InMemoryPrompt
 from search_page import SearchPage
 from search_queries import SearchQueries
 from settings import settings
-from word_classifications.ner.client import NerClient
-from word_classifications.ner.csv_rows import NerCSVRows
-from word_classifications.ner.people import People
+from word_classifications.gpt.csv_rows import GPTCSVRows
+from word_classifications.gpt.people import GPTPeople
 
 
 def _main(
@@ -42,30 +38,35 @@ def _main(
             }
             continue
 
-        with open("../prompts/get_names_from_text.txt") as fd:
+        with open("../prompts/get_people_from_text_short.txt") as fd:
             prompt_template = fd.read()
 
-        # company_staff: CSVRow = WordClassificationsWithGPT(
-        #     md,
-        #     prompt_template,
-        #     settings.openai_api_key,
-        #     logger,
-        #     batch_size=256,
-        # ).iter()
-
-        yield from NerCSVRows(
-            people=People(
+        yield from GPTCSVRows(
+            people=GPTPeople(
                 md,
-                NerClient(settings.hugging_face_ner_api_url, settings.hugging_face_token, logger),
+                prompt_template,
+                settings.openai_api_key,
                 logger,
+                openai_api_base=settings.openai_api_base,
                 batch_size=512,
             ),
-            llm_qa=LLMClientQAMistral(logger),
-            company_prompt=InMemoryPrompt(csv_options.company_prompt),
-            position_prompt=InMemoryPrompt(csv_options.position_prompt),
             url=url,
             searching_params=searching_params,
         ).iter()
+
+        # yield from NerCSVRows(
+        #     people=NerPeople(
+        #         md,
+        #         NerClient(settings.hugging_face_ner_api_url, settings.hugging_face_token, logger),
+        #         logger,
+        #         batch_size=512,
+        #     ),
+        #     llm_qa=LLMClientQAMistral(logger),
+        #     company_prompt=InMemoryPrompt(csv_options.company_prompt),
+        #     position_prompt=InMemoryPrompt(csv_options.position_prompt),
+        #     url=url,
+        #     searching_params=searching_params,
+        # ).iter()
 
 
 def get_names_and_positions_csv(
@@ -89,44 +90,3 @@ def get_names_and_positions_csv_with_progress(
         for person in _main(csv_options, logger):
             csv_.persist(person)
             yield person
-
-if __name__ == "__main__":
-    logger = logging.getLogger(__name__)
-    search_template = "{company} AND {positions} AND {site}"
-    companies = [
-        "Север Минералс",
-        # "ГК GloraX",
-        # "ГК Seven Suns Development",
-        # "ПИК",
-        # "Setl Group",
-        # "ГК ТОЧНО",
-        # "Федеральный девелопер «Неометрия»",
-        # "Мосстрой",
-        # "Capital Group",
-        # "ЦДС",
-        # "Балтика"
-    ]
-    sites = [
-        "cfo-russia.ru",
-        # "companies.rbc.ru"
-    ]
-    positions = [
-        # "директор",
-        # "руководитель",
-        # "начальник",
-        # "глава",
-        "Директор по цифровой трансформации",
-        "Финансовый директор"
-    ]
-
-    csv_options = CsvOptions(
-        companies=companies,
-        sites=sites,
-        positions=positions,
-        search_query_template=search_template,
-        access_token="",
-        company_prompt="",
-        position_prompt="",
-    )
-
-    get_names_and_positions_csv(csv_options, logger)

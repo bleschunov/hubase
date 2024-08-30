@@ -1,11 +1,10 @@
 from dataclasses import dataclass
 
-from word_classifications.model import Person
-
 
 @dataclass(frozen=True)
 class CSVRow:
-    person: Person
+    name: str
+    source: str
     position: str
     searched_company: str
     inferenced_company: str

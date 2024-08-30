@@ -94,12 +94,12 @@ async def get_csv_with_progress(ws: WebSocket) -> None:
                 break
 
             row_dto = CsvRow(
-                name=row.person.name,
+                name=row.name,
                 position=row.position,
                 searched_company=row.searched_company,
                 inferenced_company=row.inferenced_company,
                 original_url=row.original_url,
-                source=row.person.source,
+                source=row.source,
                 download_link=download_link
             )
 

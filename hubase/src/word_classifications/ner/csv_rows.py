@@ -4,13 +4,13 @@ from llm_qa.abc import LLMClientQA
 from model import CSVRow
 from prompt.abc_ import Prompt
 from word_classifications.abc_ import HubaseIterator
-from word_classifications.ner.people import People
+from word_classifications.ner.people import NerPeople
 
 
 class NerCSVRows(HubaseIterator):
     def __init__(
         self,
-        people: People,
+        people: NerPeople,
         llm_qa: LLMClientQA,
         company_prompt: Prompt,
         position_prompt: Prompt,
@@ -29,7 +29,8 @@ class NerCSVRows(HubaseIterator):
             inferenced_company = self.__llm_qa.ask(self.__company_prompt.get_and_compile(person=person.name, context=person.source))
             inferenced_position = self.__llm_qa.ask(self.__position_prompt.get_and_compile(person=person.name, context=person.source))
             yield CSVRow(
-                person=person,
+                name=person.name,
+                source=person.source,
                 position=inferenced_position,
                 searched_company=self.__searching_params["company"],
                 inferenced_company=inferenced_company,

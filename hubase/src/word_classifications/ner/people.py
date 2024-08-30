@@ -1,4 +1,3 @@
-import logging
 import typing as t
 from logging import Logger
 
@@ -7,7 +6,7 @@ from word_classifications.model import Person
 from word_classifications.ner.client import NerClient, NerResponse
 
 
-class People(HubaseIterator):
+class NerPeople(HubaseIterator):
     def __init__(self, text: str, client: NerClient, logger: Logger, *, batch_size: int = 512) -> None:
         self.__text = text
         self.__client = client
@@ -35,15 +34,3 @@ class People(HubaseIterator):
     def __only_people(self, ner_response: NerResponse) -> bool:
         return ner_response.entity_group == "PER"
 
-
-if __name__ == "__main__":
-    logger = logging.getLogger(__name__)
-
-    ner_client = NerClient(
-        url="",
-        api_key="",
-        logger=logger,
-    )
-
-    for classification in People("Дима работает в Apple и встречается с Катей", ner_client, logger).iter():
-        print(classification)
