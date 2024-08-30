@@ -15,6 +15,7 @@ from starlette.websockets import WebSocketDisconnect
 from api.model import CsvResponse, CsvOptions, CsvRow, CsvDownloadLink, Prompt, UpdatePrompt
 from exceptions import HuggingFaceException
 from main import get_names_and_positions_csv, get_names_and_positions_csv_with_progress
+from model import CSVRow
 from prompt.fs_prompt import FileSystemPrompt
 from search_queries import SearchQueries
 from settings import settings
@@ -87,18 +88,18 @@ async def get_csv_with_progress(ws: WebSocket) -> None:
 
         download_link = await asyncify(next_)(rows)
         while True:
-            row = await asyncify(next_)(rows)
+            row: t.Optional[CSVRow] = await asyncify(next_)(rows)
 
             if row is None:
                 break
 
             row_dto = CsvRow(
-                name=row["name"],
-                position=row["position"],
-                searched_company=row["searched_company"],
-                inferenced_company=row["inferenced_company"],
-                original_url=row["original_url"],
-                source=row["source"],
+                name=row.name,
+                position=row.position,
+                searched_company=row.searched_company,
+                inferenced_company=row.inferenced_company,
+                original_url=row.original_url,
+                source=row.source,
                 download_link=download_link
             )
 
