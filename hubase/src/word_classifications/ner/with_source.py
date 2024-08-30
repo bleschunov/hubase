@@ -1,11 +1,11 @@
 import typing as t
 
-from word_classifications.abc_ import IWordClassifications
+from word_classifications.abc_ import IPeople
 
 
 # TODO: move to decorators folder
-class WithSource(IWordClassifications):
-    def __init__(self, word_classifications: IWordClassifications) -> None:
+class WithSource(IPeople):
+    def __init__(self, word_classifications: IPeople) -> None:
         self.__word_classifications = word_classifications
 
     def __iter__(self) -> t.Iterator[dict]:

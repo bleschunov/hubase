@@ -2,12 +2,12 @@ import typing as t
 
 from llm_qa.abc import LLMClientQA
 from prompt.abc_ import Prompt
-from word_classifications.abc_ import IWordClassifications
+from word_classifications.abc_ import IPeople
 
 
 # TODO: move to decorators folder
-class WithPosition(IWordClassifications):
-    def __init__(self, llm_qa: LLMClientQA, prompt: Prompt, inner: IWordClassifications) -> None:
+class WithPosition(IPeople):
+    def __init__(self, llm_qa: LLMClientQA, prompt: Prompt, inner: IPeople) -> None:
         self.__inner = inner
         self.__llm_qa = llm_qa
         self.__prompt = prompt

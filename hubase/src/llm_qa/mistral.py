@@ -13,7 +13,7 @@ class LLMClientQAMistral(LLMClientQA):
         self.__model = "mistral-large-latest"
         self.__logger = logger
 
-    def ask(self, prompt) -> str:
+    def ask(self, prompt: str) -> str:
         short_prompt = (prompt[:97].replace("\n", " ") + "...")
         self.__logger.info(f"Итоговый промпт: {short_prompt}")
         self.__logger.info(f"Делаем запрос в Mistral")

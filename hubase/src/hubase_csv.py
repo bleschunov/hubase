@@ -2,7 +2,7 @@ import csv
 import datetime as dt
 import typing as t
 
-from model import Person
+from model import CSVRow
 from settings import Settings
 
 
@@ -24,7 +24,7 @@ class HubaseCsv:
         self.__fd.flush()
         self.__fd.close()
 
-    def persist(self, person: Person) -> None:
+    def persist(self, person: CSVRow) -> None:
         self.__csv.writerow(person.__dict__)
 
     @property

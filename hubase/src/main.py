@@ -5,17 +5,21 @@ from logging import Logger
 from api.model import CsvOptions
 from hubase_csv import HubaseCsv
 from hubase_md import HubaseMd, JinaException
-from model import Person
+from llm_qa.mistral import LLMClientQAMistral
+from model import CSVRow
+from prompt.in_memory import InMemoryPrompt
 from search_page import SearchPage
 from search_queries import SearchQueries
 from settings import settings
-from word_classifications.word_classifications_with_gpt import WordClassificationsWithGPT
+from word_classifications.ner.client import NerClient
+from word_classifications.ner.csv_rows import NerCSVRows
+from word_classifications.ner.people import People
 
 
 def _main(
     csv_options: CsvOptions,
     logger: Logger
-) -> t.Iterator[Person]:
+) -> t.Iterator[CSVRow]:
     search_queries = SearchQueries(
         csv_options.search_query_template,
         csv_options.companies,
@@ -36,37 +40,32 @@ def _main(
                 "original_url": url,
                 "source": None,
             }
+            continue
 
-        else:
-            with open("../prompts/get_names_from_text.txt") as fd:
-                prompt_template = fd.read()
+        with open("../prompts/get_names_from_text.txt") as fd:
+            prompt_template = fd.read()
 
-            company_staff = WordClassificationsWithGPT(
+        # company_staff: CSVRow = WordClassificationsWithGPT(
+        #     md,
+        #     prompt_template,
+        #     settings.openai_api_key,
+        #     logger,
+        #     batch_size=256,
+        # ).iter()
+
+        yield from NerCSVRows(
+            people=People(
                 md,
-                prompt_template,
-                settings.openai_api_key,
+                NerClient(settings.hugging_face_ner_api_url, settings.hugging_face_token, logger),
                 logger,
-                batch_size=256,
-            ).iter()
-
-            while True:
-                try:
-                    wc = next(company_staff)
-                except StopIteration:
-                    break
-                except Exception as err:
-                    logger.warning("Непредвиденная ошибка: %s", err)
-                    continue
-                    # TODO: в этом месте ловить ошибки и пробрасывать кастомные наверх
-                else:
-                    yield Person(
-                        name=wc.name,
-                        position="-",
-                        searched_company=searching_params["company"],
-                        inferenced_company="-",
-                        original_url=url,
-                        source=wc.source,
-                    )
+                batch_size=512,
+            ),
+            llm_qa=LLMClientQAMistral(logger),
+            company_prompt=InMemoryPrompt(csv_options.company_prompt),
+            position_prompt=InMemoryPrompt(csv_options.position_prompt),
+            url=url,
+            searching_params=searching_params,
+        ).iter()
 
 
 def get_names_and_positions_csv(
@@ -83,7 +82,7 @@ def get_names_and_positions_csv(
 def get_names_and_positions_csv_with_progress(
     csv_options: CsvOptions,
     logger: Logger
-) -> t.Iterator[dict[str, str | int] | str]:
+) -> t.Iterator[CSVRow | str]:
     headers = ["name", "position", "searched_company", "inferenced_company", "original_url", "source"]
     with HubaseCsv(headers=headers, settings=settings) as csv_:
         yield csv_.download_url

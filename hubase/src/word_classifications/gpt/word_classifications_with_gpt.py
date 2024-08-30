@@ -1,20 +1,14 @@
 import json
 import typing as t
-from dataclasses import dataclass
 from logging import Logger
 
 from openai import OpenAI
 
-from word_classifications.abc_ import IWordClassifications
+from word_classifications.abc_ import HubaseIterator
+from word_classifications.model import Person
 
 
-@dataclass(frozen=True)
-class WordClassification:
-    name: str
-    source: str
-
-
-class WordClassificationsWithGPT(IWordClassifications):
+class WordClassificationsWithGPT(HubaseIterator):
     def __init__(
         self,
         text: str,
@@ -34,7 +28,7 @@ class WordClassificationsWithGPT(IWordClassifications):
         self.__logger = logger
         self.__batch_size = batch_size
 
-    def iter(self) -> t.Iterator[WordClassification]:
+    def iter(self) -> t.Iterator[Person]:
         for batch in self.__text_batches():
             prompt = self.__prompt_template.format(input=batch)
 
@@ -44,7 +38,7 @@ class WordClassificationsWithGPT(IWordClassifications):
             names = self.__parse_gpt_response(response)
 
             for name in names:
-                yield WordClassification(
+                yield Person(
                     name=name,
                     source=batch,
                 )

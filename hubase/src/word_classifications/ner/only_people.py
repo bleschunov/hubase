@@ -1,12 +1,12 @@
 import typing as t
 from logging import Logger
 
-from word_classifications.abc_ import IWordClassifications
+from word_classifications.abc_ import IPeople
 
 
 # TODO: move to decorators folder
-class OnlyPeople(IWordClassifications):
-    def __init__(self, logger: Logger, word_classifications: IWordClassifications) -> None:
+class OnlyPeople(IPeople):
+    def __init__(self, logger: Logger, word_classifications: IPeople) -> None:
         self.__word_classifications = word_classifications
         self.__logger = logger
 
