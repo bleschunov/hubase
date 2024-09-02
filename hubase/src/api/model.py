@@ -1,6 +1,6 @@
 import typing as t
 
-from pydantic import BaseModel
+from pydantic import BaseModel, SecretStr
 
 
 class CsvOptions(BaseModel):
@@ -8,10 +8,12 @@ class CsvOptions(BaseModel):
     sites: list[str]
     positions: list[str]
     search_query_template: str
-    access_token: str
+    access_token: SecretStr
     company_prompt: str
     position_prompt: str
     max_lead_count: int
+    openai_api_key: SecretStr
+    openai_api_base: str
 
 
 class CsvDownloadLink(BaseModel):
