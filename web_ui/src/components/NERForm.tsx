@@ -1,22 +1,12 @@
-// interface INERForm {
-//     companies: string;
-//     sites: string;
-//     positions: string;
-//     search_query_template: string;
-//     max_lead_count: number;
-// }
-//
-// const NERForm = () => {
-//     // const {} = useFormContext();
-//
-//     // Возвращаем нужные для NER контроллеры
-//     // return ()
-// }
-
-
 import React from 'react';
-import { useFormContext, Controller } from 'react-hook-form';
-import { Stack, TextField } from '@mui/material';
+import {useFormContext, Controller} from 'react-hook-form';
+import {Stack, TextField} from '@mui/material';
+import PromptForm from './PromptForm';
+
+interface NERFormProps {
+    setCompanyPromptContext: (value: string) => void;
+    setPositionPromptContext: (value: string) => void;
+}
 
 interface INERForm {
     companies: string;
@@ -26,15 +16,19 @@ interface INERForm {
     max_lead_count: number;
 }
 
-const NERForm: React.FC = () => {
-    const { control } = useFormContext<INERForm>();
+const NERForm: React.FC<NERFormProps> = ({setCompanyPromptContext, setPositionPromptContext}) => {
+    const {control} = useFormContext<INERForm>();
 
     return (
         <Stack spacing={2}>
+            <PromptForm
+                setCompanyPromptContext={setCompanyPromptContext}
+                setPositionPromptContext={setPositionPromptContext}
+            />
             <Controller
                 name="companies"
                 control={control}
-                render={({ field }) => (
+                render={({field}) => (
                     <TextField
                         {...field}
                         label="Компании"
@@ -47,7 +41,7 @@ const NERForm: React.FC = () => {
             <Controller
                 name="sites"
                 control={control}
-                render={({ field }) => (
+                render={({field}) => (
                     <TextField
                         {...field}
                         label="Сайты"
@@ -60,7 +54,7 @@ const NERForm: React.FC = () => {
             <Controller
                 name="positions"
                 control={control}
-                render={({ field }) => (
+                render={({field}) => (
                     <TextField
                         {...field}
                         label="Должности"
@@ -73,7 +67,7 @@ const NERForm: React.FC = () => {
             <Controller
                 name="search_query_template"
                 control={control}
-                render={({ field }) => (
+                render={({field}) => (
                     <TextField
                         {...field}
                         label="Шаблон поискового запроса"
@@ -84,7 +78,7 @@ const NERForm: React.FC = () => {
             <Controller
                 name="max_lead_count"
                 control={control}
-                render={({ field }) => (
+                render={({field}) => (
                     <TextField
                         {...field}
                         label="Максимальное количество лидов"

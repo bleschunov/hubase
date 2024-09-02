@@ -1,68 +1,27 @@
-// import {useForm} from "react-hook-form";
-// import {useState} from "react";
-// import {Strategy} from "../models/CreateCsvOptions.ts";
-//
-//
-// const CreateCSVForm = () => {
-//   const gptOptionsForm = useForm<IGPTForm>({
-//     // defaultValues: {...}
-//   })
-//   const nerOptionsForm = useForm<INERForm>({
-//     // defaultValues: {...}
-//   })
-//
-//   const [strategy, setStrategy] = useState<Strategy>("ner")
-//
-//   let form= <NERForm />
-//
-//   switch (strategy) {
-//     case "ner":
-//       form = <NERForm />
-//       break
-//     case "gpt":
-//       form = <GPTForm />
-//       break
-//   }
-// }
-//
-//   return (
-//     // https://mui.com/material-ui/react-select/
-//     // <Select>...</Select>
-//
-//     // https://www.react-hook-form.com/advanced-usage/#FormProviderPerformance
-//     // https://habr.com/ru/articles/746806/
-//     <FormProvider {...methods}>
-//       { form }
-//     </FormProvider>
-//   )
-// }
-
-
-
 import React from 'react';
-import { useForm, FormProvider } from 'react-hook-form';
-import { useState } from 'react';
+import {useForm, FormProvider} from 'react-hook-form';
+import {useState} from 'react';
 import NERForm from './NERForm';
 import GPTForm from './GPTForm';
-import { INERForm, IGPTForm } from '../models/types';
+import {INERForm, IGPTForm} from '../models/types';
 
 
 const CreateCSVForm = () => {
     const gptOptionsForm = useForm<IGPTForm>({
         defaultValues: {
-            companies: "",
-            sites: "",
             search_query_template: "{company} AND {sites}",
-            max_lead_count: 10
+            companies: "Мосстрой",
+            sites: "sbis.ru",
+            max_lead_count: 2
         },
     });
     const nerOptionsForm = useForm<INERForm>({
         defaultValues: {
-            companies: "",
-            sites: "",
-            positions: "",
             search_query_template: "{company} AND {positions} AND {site}",
-            max_lead_count: 10
+            companies: "Мосстрой",
+            sites: "sbis.ru",
+            positions: "директор\nруководитель\nначальник\nглава",
+            max_lead_count: 2
         },
     });
 
@@ -72,20 +31,23 @@ const CreateCSVForm = () => {
         setStrategy(event.target.value as Strategy);
     };
 
-    const methods = strategy === "ner" ? nerOptionsForm : gptOptionsForm;
+    let form = <NERForm/>;
+    let methods;
 
-    let form = <NERForm />;
-      switch (strategy) {
+    switch (strategy) {
         case "ner":
-          form = <NERForm />
-          break
+            form = <NERForm/>;
+            methods = nerOptionsForm;
+            break;
         case "gpt":
-          form = <GPTForm />
-          break
-          default:
-              form = <NERForm />;
-                break;
-      }
+            form = <GPTForm/>;
+            methods = gptOptionsForm;
+            break;
+        default:
+            form = <NERForm/>;
+            methods = nerOptionsForm;
+            break;
+    }
 
 
     return (
