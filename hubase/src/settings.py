@@ -13,6 +13,7 @@ class Settings(BaseSettings):
     cors_origins: str = Field("http://localhost:5173")
     access_token: str
     openai_api_key: str
+    openai_api_base: str | None = None
 
 
 settings = Settings()
