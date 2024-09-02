@@ -2,6 +2,8 @@ import React from 'react';
 import { useFormContext, Controller } from 'react-hook-form';
 import { Stack, TextField } from '@mui/material';
 import PromptForm from './PromptForm';
+import SearchEngineQueryForm from './SearchEngineQueryForm';
+import LeadParamsForm from './LeadParamsForm';
 
 interface GPTFormProps {
     setCompanyPromptContext: (value: string) => void;
@@ -28,67 +30,8 @@ const GPTForm: React.FC<GPTFormProps> = ({ setCompanyPromptContext, setPositionP
                 setCompanyPromptContext={setCompanyPromptContext}
                 setPositionPromptContext={setPositionPromptContext}
             />
-            <Controller
-                name="companies"
-                control={control}
-                render={({ field }) => (
-                    <TextField
-                        {...field}
-                        label="Компании"
-                        placeholder="Введите названия компаний"
-                        multiline
-                        rows={4}
-                    />
-                )}
-            />
-            <Controller
-                name="sites"
-                control={control}
-                render={({ field }) => (
-                    <TextField
-                        {...field}
-                        label="Сайты"
-                        placeholder="Введите URL сайтов"
-                        multiline
-                        rows={4}
-                    />
-                )}
-            />
-            <Controller
-                name="positions"
-                control={control}
-                render={({ field }) => (
-                    <TextField
-                        {...field}
-                        label="Должности"
-                        placeholder="Введите должности"
-                        multiline
-                        rows={4}
-                    />
-                )}
-            />
-            <Controller
-                name="search_query_template"
-                control={control}
-                render={({ field }) => (
-                    <TextField
-                        {...field}
-                        label="Шаблон поискового запроса"
-                        placeholder="Введите шаблон"
-                    />
-                )}
-            />
-            <Controller
-                name="max_lead_count"
-                control={control}
-                render={({ field }) => (
-                    <TextField
-                        {...field}
-                        label="Максимальное количество лидов"
-                        type="number"
-                    />
-                )}
-            />
+            <SearchEngineQueryForm control={control} />
+            <LeadParamsForm control={control} />
             <Controller
                 name="openai_api_key"
                 control={control}
