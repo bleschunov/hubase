@@ -7,6 +7,8 @@ interface CreateCsvOptions {
   company_prompt: string;
   position_prompt: string;
   max_lead_count: number;
+  openai_api_key: string;
+  openai_api_base: string;
 }
 
 export type {

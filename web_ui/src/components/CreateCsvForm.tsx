@@ -25,6 +25,8 @@ interface IFormInput {
     sites: string;
     positions: string;
     max_lead_count: number;
+    openai_api_key: string;
+    openai_api_base: string;
 }
 
 interface SearchQueryResponse {
@@ -46,7 +48,9 @@ const CreateCsvForm = () => {
             companies: "Мосстрой",
             sites: "sbis.ru",
             positions: "директор\nруководитель\nначальник\nглава",
-            max_lead_count: 2
+            max_lead_count: 2,
+            openai_api_key: localStorage.getItem("openai_api_key") || "",
+            openai_api_base: localStorage.getItem("openai_api_base") || "",
         },
     });
 
@@ -96,6 +100,9 @@ const CreateCsvForm = () => {
             return
         }
 
+        localStorage.setItem("openai_api_key", payload_data.openai_api_key)
+        localStorage.setItem("openai_api_base", payload_data.openai_api_base)
+
         const payload: CreateCsvOptions = {
             companies: payload_data.companies.split("\n"),
             sites: payload_data.sites.split("\n"),
@@ -104,7 +111,9 @@ const CreateCsvForm = () => {
             access_token: import.meta.env.VITE_ACCESS_TOKEN,
             company_prompt: companyPromptContext,
             position_prompt: positionPromptContext,
-            max_lead_count: payload_data.max_lead_count
+            max_lead_count: payload_data.max_lead_count,
+            openai_api_key: payload_data.openai_api_key,
+            openai_api_base: payload_data.openai_api_base,
         };
 
         const csvWs = new WebSocket(`${import.meta.env.VITE_API_BASE_URL_WS}/csv/progress`);
@@ -160,6 +169,28 @@ const CreateCsvForm = () => {
             <Divider/>
             <form>
                 <Stack spacing={2}>
+                    <Controller
+                            name="openai_api_key"
+                            control={control}
+                            render={({ field }) => (
+                                <TextField
+                                    {...field}
+                                    label="API ключ для openai"
+                                    placeholder="sk-..."
+                                />
+                            )}
+                        />
+                    <Controller
+                        name="openai_api_base"
+                        control={control}
+                        render={({ field }) => (
+                            <TextField
+                                {...field}
+                                label="Прокси для openai"
+                                placeholder="https://..."
+                            />
+                        )}
+                    />
                     <Stack spacing={1} sx={{border: "solid #CCC", p: 1, borderRadius: "10px"}}>
                         <Controller
                             name="search_query_template"
@@ -169,7 +200,6 @@ const CreateCsvForm = () => {
                                     {...field}
                                     error={Object.entries(errors).length > 0}
                                     helperText={Object.entries(errors).length > 0 && errors?.search_query_template.message}
-                                    id="outlined-textarea"
                                     label="Поисковой запрос"
                                     placeholder="{company} AND {positions} AND {site}"
                                 />
@@ -184,7 +214,7 @@ const CreateCsvForm = () => {
                                 Протестировать
                             </LoadingButton>
                         </Box>
-                        {compiledSearchQueries.map((query: string) => <Box>{query}</Box>)}
+                        {compiledSearchQueries.map((query: string, index: number) => <Box key={index}>{query}</Box>)}
                     </Stack>
                     <Controller
                         name="companies"
@@ -192,7 +222,6 @@ const CreateCsvForm = () => {
                         render={({field}) => (
                             <TextField
                                 {...field}
-                                id="outlined-textarea"
                                 label="Компании"
                                 placeholder="Север Минералс"
                                 multiline
@@ -206,7 +235,6 @@ const CreateCsvForm = () => {
                         render={({field}) => (
                             <TextField
                                 {...field}
-                                id="outlined-textarea"
                                 label="Сайты для поиска"
                                 placeholder="cfo-russia.ru"
                                 multiline
@@ -220,7 +248,6 @@ const CreateCsvForm = () => {
                         render={({field}) => (
                             <TextField
                                 {...field}
-                                id="outlined-textarea"
                                 label="Должности"
                                 placeholder="Директор"
                                 multiline
@@ -230,17 +257,16 @@ const CreateCsvForm = () => {
                     />
                     <Box>
                         <Controller
-                        name="max_lead_count"
-                        control={control}
-                        render={({ field }) => (
-                            <TextField
-                                {...field}
-                                id="outlined-number"
-                                label="Сколько лидов ищём"
-                                type="number"
-                            />
-                        )}
-                    />
+                            name="max_lead_count"
+                            control={control}
+                            render={({ field }) => (
+                                <TextField
+                                    {...field}
+                                    label="Сколько лидов ищём"
+                                    type="number"
+                                />
+                            )}
+                        />
                     </Box>
                     <Box>
                         <LoadingButton

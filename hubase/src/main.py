@@ -41,13 +41,20 @@ def _main(
         with open("../prompts/get_people_from_text_short.txt") as fd:
             prompt_template = fd.read()
 
+        if csv_options.openai_api_key.get_secret_value() != "":
+            openai_api_key = csv_options.openai_api_key
+        else:
+            openai_api_key = settings.openai_api_key
+
+        openai_api_base = csv_options.openai_api_base if csv_options.openai_api_base != "" else settings.openai_api_base
+
         yield from GPTCSVRows(
             people=GPTPeople(
-                md,
-                prompt_template,
-                settings.openai_api_key,
-                logger,
-                openai_api_base=settings.openai_api_base,
+                text=md,
+                prompt_template=prompt_template,
+                api_key=openai_api_key.get_secret_value(),
+                logger=logger,
+                openai_api_base=openai_api_base,
                 batch_size=512,
             ),
             url=url,
