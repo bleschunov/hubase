@@ -9,7 +9,7 @@ interface FormInput {
   prompt_text: string;
 }
 
-const PromptForm = ({setCompanyPromptContext, setPositionPromptContext}) => {
+const PromptForm = ({setCompanyPromptContext, setPositionPromptContext, foo}) => {
   const [loading, setLoading] = useState<boolean>(false)
 
   const isContainsVariables = value => {
@@ -31,6 +31,8 @@ const PromptForm = ({setCompanyPromptContext, setPositionPromptContext}) => {
       name: "company",
     },
   })
+
+  console.log(foo)
 
   const {
     control: positionControl,
