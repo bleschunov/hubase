@@ -24,7 +24,7 @@ interface IFormInput {
     companies: string;
     sites: string;
     positions: string;
-    max_leads: number;
+    max_lead_count: number;
 }
 
 interface SearchQueryResponse {
@@ -46,7 +46,7 @@ const CreateCsvForm = () => {
             companies: "Мосстрой",
             sites: "sbis.ru",
             positions: "директор\nруководитель\nначальник\nглава",
-            max_leads: 10
+            max_lead_count: 2
         },
     });
 
@@ -95,7 +95,6 @@ const CreateCsvForm = () => {
         if (!is_test_success) {
             return
         }
-        console.log(payload_data.max_leads);
 
         const payload: CreateCsvOptions = {
             companies: payload_data.companies.split("\n"),
@@ -105,7 +104,7 @@ const CreateCsvForm = () => {
             access_token: import.meta.env.VITE_ACCESS_TOKEN,
             company_prompt: companyPromptContext,
             position_prompt: positionPromptContext,
-            max_leads: payload_data.max_leads
+            max_lead_count: payload_data.max_lead_count
         };
 
         const csvWs = new WebSocket(`${import.meta.env.VITE_API_BASE_URL_WS}/csv/progress`);
@@ -229,21 +228,20 @@ const CreateCsvForm = () => {
                             />
                         )}
                     />
-                    <Controller
-                        name="max_leads"
+                    <Box>
+                        <Controller
+                        name="max_lead_count"
                         control={control}
                         render={({ field }) => (
                             <TextField
                                 {...field}
                                 id="outlined-number"
-                                label="Максимальное количество лидов"
+                                label="Сколько лидов ищём"
                                 type="number"
-                                InputLabelProps={{
-                                    shrink: true,
-                                }}
                             />
                         )}
                     />
+                    </Box>
                     <Box>
                         <LoadingButton
                             onClick={handleSubmit(onSubmitWs)}
