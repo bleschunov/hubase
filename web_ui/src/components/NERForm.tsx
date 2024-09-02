@@ -9,6 +9,7 @@ interface NERFormProps {
 }
 
 interface INERForm {
+    strategy: "ner";
     companies: string;
     sites: string;
     positions: string;
