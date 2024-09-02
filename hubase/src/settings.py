@@ -1,4 +1,4 @@
-from pydantic import Field
+from pydantic import Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -11,7 +11,9 @@ class Settings(BaseSettings):
     host: str = Field("localhost")
     port: int = Field(8080)
     cors_origins: str = Field("http://localhost:5173")
-    access_token: str
+    access_token: SecretStr
+    openai_api_key: SecretStr
+    openai_api_base: str | None = None
 
 
 settings = Settings()

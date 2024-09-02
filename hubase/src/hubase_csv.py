@@ -1,7 +1,8 @@
 import csv
-import typing as t
 import datetime as dt
+import typing as t
 
+from model import CSVRow
 from settings import Settings
 
 
@@ -23,12 +24,8 @@ class HubaseCsv:
         self.__fd.flush()
         self.__fd.close()
 
-    def persist(self, row: dict) -> None:
-        for header in self.__headers:
-            if header not in row:
-                row[header] = "-"
-                # raise RuntimeError(f"Строка не содержит поля: {header}")
-        self.__csv.writerow(row)
+    def persist(self, person: CSVRow) -> None:
+        self.__csv.writerow(person.__dict__)
 
     @property
     def download_url(self) -> str:
