@@ -24,6 +24,7 @@ interface IFormInput {
     companies: string;
     sites: string;
     positions: string;
+    max_lead_count: number;
 }
 
 interface SearchQueryResponse {
@@ -45,6 +46,7 @@ const CreateCsvForm = () => {
             companies: "Мосстрой",
             sites: "sbis.ru",
             positions: "директор\nруководитель\nначальник\nглава",
+            max_lead_count: 2
         },
     });
 
@@ -101,7 +103,8 @@ const CreateCsvForm = () => {
             search_query_template: payload_data.search_query_template,
             access_token: import.meta.env.VITE_ACCESS_TOKEN,
             company_prompt: companyPromptContext,
-            position_prompt: positionPromptContext
+            position_prompt: positionPromptContext,
+            max_lead_count: payload_data.max_lead_count
         };
 
         const csvWs = new WebSocket(`${import.meta.env.VITE_API_BASE_URL_WS}/csv/progress`);
@@ -225,6 +228,20 @@ const CreateCsvForm = () => {
                             />
                         )}
                     />
+                    <Box>
+                        <Controller
+                        name="max_lead_count"
+                        control={control}
+                        render={({ field }) => (
+                            <TextField
+                                {...field}
+                                id="outlined-number"
+                                label="Сколько лидов ищём"
+                                type="number"
+                            />
+                        )}
+                    />
+                    </Box>
                     <Box>
                         <LoadingButton
                             onClick={handleSubmit(onSubmitWs)}

@@ -6,6 +6,7 @@ interface CreateCsvOptions {
   access_token: string;
   company_prompt: string;
   position_prompt: string;
+  max_lead_count: number;
 }
 
 export type {

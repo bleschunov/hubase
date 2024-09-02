@@ -85,8 +85,13 @@ def get_names_and_positions_csv_with_progress(
     logger: Logger
 ) -> t.Iterator[CSVRow | str]:
     headers = ["name", "position", "searched_company", "inferenced_company", "original_url", "source"]
+
     with HubaseCsv(headers=headers, settings=settings) as csv_:
         yield csv_.download_url
-        for person in _main(csv_options, logger):
+
+        for lead_count, person in enumerate(_main(csv_options, logger), start=1):
             csv_.persist(person)
             yield person
+
+            if lead_count >= csv_options.max_lead_count:
+                break
