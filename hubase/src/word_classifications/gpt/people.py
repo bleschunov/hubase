@@ -75,12 +75,12 @@ class GPTPeople(HubaseIterator):
             )
 
         except Exception as e:
-            self.__logger.warning(f"Ошибка при запросе к GPT-4: {str(e)}")
+            self.__logger.warning(f"Ошибка при запросе к GPT: {str(e)}")
             raise e
 
         else:
             people = response.choices[0].message.parsed.people
-            self.__logger.info(f"Получен ответ от GPT-4.")
+            self.__logger.info(f"Получен ответ от GPT.")
             self.__logger.info(f"Найдено людей: {len(people)}")
             self.__logger.info(f"Использовано токенов: {response.usage.total_tokens}")
             return response.choices[0].message.parsed.people
