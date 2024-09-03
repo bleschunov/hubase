@@ -1,36 +1,11 @@
 import React from 'react';
-import { Controller } from 'react-hook-form';
+import { useFormContext, Controller } from 'react-hook-form';
 import { TextField, Stack } from '@mui/material';
 
-const SearchEngineQueryForm: React.FC<SearchEngineQueryFormProps> = ({ control }) => {
+const SearchEngineQueryTemplateForm: React.FC = () => {
+    const { control } = useFormContext();
     return (
         <Stack spacing={2}>
-            <Controller
-                name="companies"
-                control={control}
-                render={({ field }) => (
-                    <TextField
-                        {...field}
-                        label="Компании"
-                        placeholder="Введите названия компаний"
-                        multiline
-                        rows={4}
-                    />
-                )}
-            />
-            <Controller
-                name="sites"
-                control={control}
-                render={({ field }) => (
-                    <TextField
-                        {...field}
-                        label="Сайты"
-                        placeholder="Введите URL сайтов"
-                        multiline
-                        rows={4}
-                    />
-                )}
-            />
             <Controller
                 name="search_query_template"
                 control={control}
@@ -46,4 +21,4 @@ const SearchEngineQueryForm: React.FC<SearchEngineQueryFormProps> = ({ control }
     );
 };
 
-export default SearchEngineQueryForm;
+export default SearchEngineQueryTemplateForm;
