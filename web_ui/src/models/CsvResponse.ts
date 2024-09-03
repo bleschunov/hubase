@@ -1,5 +1,4 @@
 interface IRow {
-  id: string;
   name: string;
   position: string;
   searched_company: string;
@@ -9,6 +8,10 @@ interface IRow {
   download_link: string;
 }
 
+interface IRowWithId extends IRow {
+  id: string;
+}
+
 interface CsvResponse {
   type: "log" | "csv_row";
   data: IRow | string;
@@ -16,5 +19,5 @@ interface CsvResponse {
 
 
 export type {
-  IRow, CsvResponse
+  IRow, IRowWithId, CsvResponse
 }

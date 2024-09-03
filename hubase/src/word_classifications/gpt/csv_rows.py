@@ -20,7 +20,7 @@ class GPTCSVRows(HubaseIterator):
         for response in self.__people.iter():
             yield CSVRow(
                 name=response.person.name,
-                source=response.source,
+                source=response.source.replace("\n", " ").replace("\r", " ").replace("\t", " "),
                 position=response.person.position,
                 searched_company=self.__searching_params["company"],
                 inferenced_company=response.person.company,
