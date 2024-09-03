@@ -32,7 +32,7 @@ jobs:
         username: ${{ secrets.REMOTE_USER }}
         key: ${{ secrets.SSH_PRIVATE_KEY }}
         source: 'web_ui/dist/*'
-        target: '/hubase/front'
+        target: '/hubase/hubase/front'
 
     - name: Execute remote commands via SSH
       uses: appleboy/ssh-action@v0.1.6
