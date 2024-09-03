@@ -1,24 +1,25 @@
 import {
-    Box,
-    Button,
-    Divider,
-    Link,
-    Paper,
-    Stack,
-    Table,
-    TableBody,
-    TableCell,
-    TableContainer,
-    TableHead,
-    TableRow,
-    TextField,
+  Box,
+  Button,
+  Divider,
+  FormControl,
+  InputLabel,
+  Link,
+  MenuItem,
+  Select,
+  SelectChangeEvent,
+  Stack,
+  TextField,
 } from "@mui/material";
+import {v4 as uuidv4} from 'uuid';
 import LoadingButton from '@mui/lab/LoadingButton';
 import {Controller, SubmitHandler, useForm} from "react-hook-form";
 import {CreateCsvOptions} from "../models/CreateCsvOptions.ts";
 import {useState} from "react";
-import {CsvResponse, IRow} from "../models/CsvResponse.ts";
+import {CsvResponse, IRow, IRowWithId} from "../models/CsvResponse.ts";
 import PromptForm from "./PromptForm.tsx";
+import DataGridTable from "./table/DataGridTable.tsx";
+import SimpleTable from "./table/SimpleTable.tsx";
 
 interface IFormInput {
   search_query_template: string;
@@ -35,7 +36,7 @@ interface SearchQueryResponse {
   data: string | string[];
 }
 
-const MAX_CHAR_COUNT = 25;
+type ViewType = "simple" | "dataGrid"
 
 const CreateCsvForm = () => {
   const {
@@ -56,16 +57,21 @@ const CreateCsvForm = () => {
   });
 
   const [csvDownloadLink, setCsvDownloadLink] = useState("");
-  const [rows, setRows] = useState<IRow[]>([]);
+  const [rows, setRows] = useState<IRowWithId[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [logMessages, setLogMessages] = useState<string[]>([]);
   const [compiledSearchQueries, setCompiledSearchQueries] = useState<string[]>([])
   const [companyPromptContext, setCompanyPromptContext] = useState<string>("")
   const [positionPromptContext, setPositionPromptContext] = useState<string>("")
+  const [viewType, setViewType] = useState<ViewType>("dataGrid")
 
   const logMessage = (message: string) => {
     setLogMessages((prev) => [message, ...prev]);
   };
+
+  const handleChangeViewType = (event: SelectChangeEvent) => {
+    setViewType(event.target.value as ViewType);
+  }
 
   const onTestSearchQuery: SubmitHandler<IFormInput> = async (payload_data): boolean => {
     setLoading(true)
@@ -139,9 +145,10 @@ const CreateCsvForm = () => {
 
       if (row.type === "csv_row") {
         const csv_row = row.data as IRow
+        const csv_row_with_id = {id: uuidv4(), ...csv_row}
 
         setCsvDownloadLink(csv_row.download_link);
-        setRows((prev) => [csv_row, ...prev]);
+        setRows((prev) => [...prev, csv_row_with_id]);
       } else if (row.type === "log") {
         const log_entry = row.data as string
         logMessage(log_entry);
@@ -158,8 +165,6 @@ const CreateCsvForm = () => {
     };
   };
 
-
-  const truncateString = (str: string, num: number): string => str.length > num ? str.slice(0, num - 3) + "..." : str;
 
   const clearResults = () => {
     setRows([])
@@ -299,49 +304,37 @@ const CreateCsvForm = () => {
         sx={{mt: 3}}
       />
       <Divider/>
-      <Stack direction="row" spacing={2} alignItems="center" justifyContent="space-between">
-        {csvDownloadLink !== "" && !loading ? (
-          <Link href={csvDownloadLink}>Скачать CSV</Link>
-        ) : (
-          <Box>Здесь будет ссылка для скачивания...</Box>
-        )}
+      <Stack direction="row" spacing={2} alignItems="center" justifyContent="end">
+        <Box flexGrow="1">
+          {csvDownloadLink !== "" && !loading ? (
+            <Link href={csvDownloadLink}>Скачать CSV</Link>
+          ) : (
+            <Box>Здесь будет ссылка для скачивания...</Box>
+          )}
+        </Box>
+        <FormControl>
+          <InputLabel id="viewTypeLabel">Отображение</InputLabel>
+          <Select
+            labelId="viewTypeLabel"
+            id="viewType"
+            value={viewType}
+            label="Тип отображения"
+            onChange={handleChangeViewType}
+          >
+            <MenuItem value="simple">Простое</MenuItem>
+            <MenuItem value="dataGrid">Для профи 😎</MenuItem>
+          </Select>
+        </FormControl>
         <Button
           variant="contained"
           disabled={!rows.length || loading}
           onClick={clearResults}>
-            Сбросить таблицу и ссылку
+          Сбросить таблицу и ссылку
         </Button>
       </Stack>
-      <TableContainer component={Paper}>
-        <Table sx={{minWidth: 650}} size="small" aria-label="a dense table">
-          <TableHead>
-            <TableRow>
-              <TableCell>Имя</TableCell>
-              <TableCell>Должность</TableCell>
-              <TableCell>Искомая компания</TableCell>
-              <TableCell>Реальная компания</TableCell>
-              <TableCell>Ссылка на источник</TableCell>
-              <TableCell>Пруф из источника</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {rows.map((row, index) => (
-              <TableRow key={index}
-                        sx={{'&:last-child td, &:last-child th': {border: 0}}}>
-                <TableCell component="th"
-                           scope="row">{truncateString(row.name, MAX_CHAR_COUNT)}</TableCell>
-                <TableCell>{truncateString(row.position, MAX_CHAR_COUNT)}</TableCell>
-                <TableCell>{truncateString(row.searched_company, MAX_CHAR_COUNT)}</TableCell>
-                <TableCell>{truncateString(row.inferenced_company, MAX_CHAR_COUNT)}</TableCell>
-                <TableCell><Link href={row.original_url} target="_blank">
-                  {row.original_url}</Link></TableCell>
-                <TableCell>{row.source}</TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
+      {viewType === "dataGrid" ? <DataGridTable rows={rows}/> : <SimpleTable rows={rows}/>}
     </Stack>
+
   );
 };
 
