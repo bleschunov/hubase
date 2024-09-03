@@ -13,16 +13,35 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v3
 
-    - name: Install SSH client
-      run: sudo apt-get install openssh-client
+    - name: Set up Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
 
-    - name: Connect to Remote Server and Run Commands
-      uses: appleboy/ssh-action@v1.0.3
+    - name: Install dependencies
+      run: cd web_ui && yarn install
+
+    - name: Build the React app
+      run: yarn vite build --base=/static/
+
+    - name: Copy files via SSH
+      uses: appleboy/scp-action@v0.1.4
+      with:
+        host: ${{ secrets.REMOTE_HOST }}
+        username: ${{ secrets.REMOTE_USER }}
+        key: ${{ secrets.SSH_PRIVATE_KEY }}
+        source: '/web_ui/dist/*'
+        target: '/hubase/front'
+
+    - name: Execute remote commands via SSH
+      uses: appleboy/ssh-action@v0.1.6
       with:
         host: ${{ secrets.REMOTE_HOST }}
         username: ${{ secrets.REMOTE_USER }}
         key: ${{ secrets.SSH_PRIVATE_KEY }}
         script: |
-          cd hubase
-          git pull
-          ./deploy.sh
+          cd /hubase/hubase;
+          git pull;
+          ../venv/bin/activate;
+          pip install -r requirements.txt;
+          env "PATH=$PATH" python __main__.py;
