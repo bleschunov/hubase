@@ -1,6 +1,10 @@
 name: SSH Deploy
 
-on: workflow_dispatch
+on:
+  push:
+    branches:
+      - master
+      - new-ci
 
 jobs:
   deploy:
