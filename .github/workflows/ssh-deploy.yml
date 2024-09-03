@@ -31,7 +31,7 @@ jobs:
         host: ${{ secrets.REMOTE_HOST }}
         username: ${{ secrets.REMOTE_USER }}
         key: ${{ secrets.SSH_PRIVATE_KEY }}
-        source: 'web_ui/dist/*'
+        source: '${GITHUB_WORKSPACE}/web_ui/dist/*'
         target: '/hubase/hubase/front'
 
     - name: Execute remote commands via SSH
