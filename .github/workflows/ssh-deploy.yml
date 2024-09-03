@@ -42,7 +42,7 @@ jobs:
         username: ${{ secrets.REMOTE_USER }}
         key: ${{ secrets.SSH_PRIVATE_KEY }}
         script: |
-          cd /hubase/hubase;
+          cd ~/hubase/hubase;
           git pull;
           ../venv/bin/activate;
           pip install -r requirements.txt;
