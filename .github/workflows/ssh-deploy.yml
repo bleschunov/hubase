@@ -31,6 +31,7 @@ jobs:
         host: ${{ secrets.REMOTE_HOST }}
         username: ${{ secrets.REMOTE_USER }}
         key: ${{ secrets.SSH_PRIVATE_KEY }}
+        debug: true
         source: '${GITHUB_WORKSPACE}/web_ui/dist/*'
         target: '/hubase/hubase/front'
 
