@@ -33,7 +33,7 @@ jobs:
         key: ${{ secrets.SSH_PRIVATE_KEY }}
         debug: true
         source: 'web_ui/dist/*'
-        target: '~/hubase/hubase/front'
+        target: '~/hubase/hubase/front/'
 
     - name: Execute remote commands via SSH
       uses: appleboy/ssh-action@v0.1.6
@@ -47,4 +47,4 @@ jobs:
           source venv/bin/activate;
           pip install -r requirements.txt;
           cd src;
-          env "PATH=$PATH" python __main__.py;
+          env "PATH=$PATH" sudo python __main__.py;
