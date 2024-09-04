@@ -32,6 +32,7 @@ jobs:
         username: ${{ secrets.REMOTE_USER }}
         key: ${{ secrets.SSH_PRIVATE_KEY }}
         overwrite: 1
+        strip_components: 1
         source: './web_ui/dist/'
         target: '~/hubase/hubase/front'
 
