@@ -31,8 +31,8 @@ jobs:
         host: ${{ secrets.REMOTE_HOST }}
         username: ${{ secrets.REMOTE_USER }}
         key: ${{ secrets.SSH_PRIVATE_KEY }}
-        debug: true
-        source: 'web_ui/dist'
+        overwrite: 1
+        source: 'web_ui/dist/'
         target: '~/hubase/hubase/front'
 
     - name: Execute remote commands via SSH
