@@ -47,4 +47,5 @@ jobs:
           source venv/bin/activate;
           pip install -r requirements.txt;
           cd src;
-          sudo env "PATH=$PATH" python __main__.py;
+          sudo kill $(pgrep python);
+          nohup sudo env "PATH=$PATH" python __main__.py &;
