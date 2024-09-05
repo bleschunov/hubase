@@ -1,24 +1,25 @@
 import {
     Box,
+    Button,
     Link,
-    Paper,
+    MenuItem,
+    Select,
     Stack,
-    Table,
-    TableBody,
-    TableCell,
-    TableContainer,
-    TableHead,
-    TableRow,
-    TextField,
+    SelectChangeEvent,
 } from "@mui/material";
 import LoadingButton from '@mui/lab/LoadingButton';
-import React, { useState } from 'react';
-import { useForm, FormProvider, SubmitHandler } from 'react-hook-form';
+import { useState } from 'react';
+import { useForm, FormProvider, SubmitHandler, UseFormReturn } from 'react-hook-form';
+import { v4 as uuidv4 } from 'uuid';
 import NERForm from './NERForm';
 import GPTForm from './GPTForm';
-import { INERForm, IGPTForm, IRow, Strategy } from '../models/types';
+import { INERForm, IGPTForm, IRowWithId, Strategy, CsvResponse, IRow } from '../models/CsvResponse';
+import DataGridTable from "./table/DataGridTable.tsx";
+import SimpleTable from "./table/SimpleTable.tsx";
+import LogViewer from './LogViewer';
+import SearchQueryTester from './SearchQueryTester';
 
-const MAX_CHAR_COUNT = 25;
+type ViewType = "simple" | "dataGrid";
 
 const CreateCSVForm = () => {
     const gptOptionsForm = useForm<IGPTForm>({
@@ -31,6 +32,7 @@ const CreateCSVForm = () => {
             openai_api_base: ""
         },
     });
+
     const nerOptionsForm = useForm<INERForm>({
         defaultValues: {
             search_query_template: "{company} AND {positions} AND {site}",
@@ -45,12 +47,14 @@ const CreateCSVForm = () => {
 
     const [strategy, setStrategy] = useState<Strategy>("ner");
     const [csvDownloadLink, setCsvDownloadLink] = useState<string>("");
-    const [rows, setRows] = useState<IRow[]>([]);
+    const [rows, setRows] = useState<IRowWithId[]>([]);
     const [loading, setLoading] = useState<boolean>(false);
     const [logMessages, setLogMessages] = useState<string[]>([]);
     const [compiledSearchQueries, setCompiledSearchQueries] = useState<string[]>([]);
+    const [viewType, setViewType] = useState<"simple" | "dataGrid">("dataGrid");
+    const [searchQueryTemplate, setSearchQueryTemplate] = useState<string>("");
 
-    const handleStrategyChange = (event: React.ChangeEvent<{ value: unknown }>) => {
+    const handleStrategyChange = (event: SelectChangeEvent<Strategy>) => {
         setStrategy(event.target.value as Strategy);
     };
 
@@ -58,7 +62,7 @@ const CreateCSVForm = () => {
         setLogMessages((prev) => [message, ...prev]);
     };
 
-    const onTestSearchQuery: SubmitHandler<INERForm | IGPTForm> = async (data) => {
+    const onTestSearchQuery: SubmitHandler<{ search_query_template: string }> = async (data) => {
         setLoading(true);
         const resp = await fetch(`${import.meta.env.VITE_API_BASE_URL}/search_query`, {
             method: "POST",
@@ -100,7 +104,7 @@ const CreateCSVForm = () => {
         };
 
         csvWs.onmessage = (event) => {
-            let row: IRow;
+            let row: CsvResponse;
             try {
                 row = JSON.parse(event.data);
             } catch (error) {
@@ -109,13 +113,13 @@ const CreateCSVForm = () => {
             }
 
             if (row.type === "csv_row") {
-                const csv_row = row.data as IRow;
+                const rowData = row.data as IRow;
+                const csv_row_with_id: IRowWithId = { id: uuidv4(), ...rowData };
 
-                setCsvDownloadLink(csv_row.download_link);
-                setRows((prev) => [csv_row, ...prev]);
+                setCsvDownloadLink(rowData.download_link);
+                setRows((prev) => [...prev, csv_row_with_id]);
             } else if (row.type === "log") {
-                const log_entry = row.data as string;
-                logMessage(log_entry);
+                logMessage(row.data as string);
             }
         };
 
@@ -129,23 +133,26 @@ const CreateCSVForm = () => {
         };
     };
 
-    const truncateString = (str: string, num: number): string => str.length > num ? str.slice(0, num - 3) + "..." : str;
+    const clearResults = () => {
+        setRows([]);
+        setCsvDownloadLink("");
+    };
 
     let form = <NERForm />;
-    let methods;
+    let methods: UseFormReturn<INERForm | IGPTForm>;
 
     switch (strategy) {
         case "ner":
             form = <NERForm />;
-            methods = nerOptionsForm;
+            methods = nerOptionsForm as UseFormReturn<INERForm | IGPTForm>;
             break;
         case "gpt":
             form = <GPTForm />;
-            methods = gptOptionsForm;
+            methods = gptOptionsForm as UseFormReturn<INERForm | IGPTForm>;
             break;
         default:
             form = <NERForm />;
-            methods = nerOptionsForm;
+            methods = nerOptionsForm as UseFormReturn<INERForm | IGPTForm>;
             break;
     }
 
@@ -163,18 +170,13 @@ const CreateCSVForm = () => {
                         <MenuItem value="gpt">GPT-4</MenuItem>
                     </Select>
                     {form}
-                    <Box>
-                        <LoadingButton
-                            loading={loading}
-                            variant="outlined"
-                            onClick={methods.handleSubmit(onTestSearchQuery)}
-                        >
-                            Протестировать
-                        </LoadingButton>
-                    </Box>
-                    {compiledSearchQueries.map((query: string, index: number) => (
-                        <Box key={index}>{query}</Box>
-                    ))}
+                    <SearchQueryTester
+                        onTestSearchQuery={onTestSearchQuery}
+                        compiledSearchQueries={compiledSearchQueries}
+                        loading={loading}
+                        setSearchQueryTemplate={setSearchQueryTemplate}
+                        searchQueryTemplate={searchQueryTemplate}
+                    />
                     <LoadingButton
                         type="submit"
                         loading={loading}
@@ -185,55 +187,34 @@ const CreateCSVForm = () => {
                     </LoadingButton>
                 </Stack>
             </form>
-            <TextField
-                label="Логи"
-                multiline
-                rows={10}
-                value={logMessages.join("\n")}
-                InputProps={{
-                    readOnly: true,
-                }}
-                fullWidth
-                variant="outlined"
-                sx={{ mt: 3 }}
-            />
+            <LogViewer logMessages={logMessages} />
             {csvDownloadLink !== "" && !loading ? (
                 <Link href={csvDownloadLink}>Скачать CSV</Link>
             ) : (
                 <Box>Здесь будет ссылка для скачивания...</Box>
             )}
-            <TableContainer component={Paper}>
-                <Table sx={{ minWidth: 650 }} size="small" aria-label="a dense table">
-                    <TableHead>
-                        <TableRow>
-                            <TableCell>Имя</TableCell>
-                            <TableCell>Должность</TableCell>
-                            <TableCell>Искомая компания</TableCell>
-                            <TableCell>Реальная компания</TableCell>
-                            <TableCell>Ссылка на источник</TableCell>
-                            <TableCell>Пруф из источника</TableCell>
-                        </TableRow>
-                    </TableHead>
-                    <TableBody>
-                        {rows.map((row, index) => (
-                            <TableRow key={index}
-                                      sx={{ '&:last-child td, &:last-child th': { border: 0 } }}>
-                                <TableCell component="th"
-                                           scope="row">{truncateString(row.name, MAX_CHAR_COUNT)}</TableCell>
-                                <TableCell>{truncateString(row.position, MAX_CHAR_COUNT)}</TableCell>
-                                <TableCell>{truncateString(row.searched_company, MAX_CHAR_COUNT)}</TableCell>
-                                <TableCell>{truncateString(row.inferenced_company, MAX_CHAR_COUNT)}</TableCell>
-                                <TableCell><Link href={row.original_url} target="_blank">
-                                    {row.original_url}</Link></TableCell>
-                                <TableCell>{row.source}</TableCell>
-                            </TableRow>
-                        ))}
-                    </TableBody>
-                </Table>
-            </TableContainer>
+            <Stack direction="row" spacing={2} alignItems="center" justifyContent="end">
+                <Box flexGrow="1" />
+                <Select
+                    value={viewType}
+                    onChange={(event: SelectChangeEvent) => setViewType(event.target.value as ViewType)}
+                    variant="outlined"
+                    displayEmpty
+                >
+                    <MenuItem value="simple">Простое</MenuItem>
+                    <MenuItem value="dataGrid">Для профи 😎</MenuItem>
+                </Select>
+                <Button
+                    variant="contained"
+                    disabled={!rows.length || loading}
+                    onClick={clearResults}
+                >
+                    Сбросить таблицу и ссылку
+                </Button>
+            </Stack>
+            {viewType === "dataGrid" ? <DataGridTable rows={rows} /> : <SimpleTable rows={rows} />}
         </FormProvider>
     );
 };
-
 
 export default CreateCSVForm;

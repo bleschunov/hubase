@@ -1,6 +1,6 @@
 import React from 'react';
-import { useFormContext, Controller } from 'react-hook-form';
-import { Stack, TextField } from '@mui/material';
+import {useFormContext, Controller} from 'react-hook-form';
+import {Stack, TextField} from '@mui/material';
 import SearchEngineQueryForm from './SearchEngineQueryForm';
 import LeadParamsForm from './LeadParamsForm';
 
@@ -18,7 +18,7 @@ interface IGPTForm {
 }
 
 const GPTForm: React.FC = () => {
-    const { control } = useFormContext<IGPTForm>();
+    const {control} = useFormContext<IGPTForm>();
 
     return (
         <Stack spacing={2}>
@@ -26,7 +26,7 @@ const GPTForm: React.FC = () => {
                 name="companyPrompt"
                 control={control}
                 defaultValue=""
-                render={({ field }) => (
+                render={({field}) => (
                     <TextField
                         {...field}
                         label="Company Prompt"
@@ -38,7 +38,7 @@ const GPTForm: React.FC = () => {
                 name="positionPrompt"
                 control={control}
                 defaultValue=""
-                render={({ field }) => (
+                render={({field}) => (
                     <TextField
                         {...field}
                         label="Position Prompt"
@@ -46,13 +46,13 @@ const GPTForm: React.FC = () => {
                     />
                 )}
             />
-            <SearchEngineQueryForm control={control} />
-            <LeadParamsForm control={control} />
+            <SearchEngineQueryForm/>
+            <LeadParamsForm/>
             <Controller
                 name="openai_api_key"
                 control={control}
                 defaultValue=""
-                render={({ field }) => (
+                render={({field}) => (
                     <TextField
                         {...field}
                         label="OpenAI API Key"
@@ -65,7 +65,7 @@ const GPTForm: React.FC = () => {
                 name="openai_api_base"
                 control={control}
                 defaultValue=""
-                render={({ field }) => (
+                render={({field}) => (
                     <TextField
                         {...field}
                         label="OpenAI API Base"

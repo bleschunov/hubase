@@ -1,23 +1,29 @@
-import {useEffect, useState} from "react";
-import {Stack, TextField} from "@mui/material";
-import {Controller, useForm} from "react-hook-form";
+import { useEffect, useState } from "react";
+import { Stack, TextField } from "@mui/material";
+import { Controller, useForm} from "react-hook-form";
 import LoadingButton from "@mui/lab/LoadingButton";
-import {Prompt} from "../models/Prompt.ts";
+import { Prompt } from "../models/Prompt";
+
+// Укажите типы пропсов для компонента
+interface PromptFormProps {
+  setCompanyPromptContext: (prompt: string) => void;
+  setPositionPromptContext: (prompt: string) => void;
+}
 
 interface FormInput {
   name: string;
   prompt_text: string;
 }
 
-const PromptForm = ({setCompanyPromptContext, setPositionPromptContext}) => {
-  const [loading, setLoading] = useState<boolean>(false)
+const PromptForm: React.FC<PromptFormProps> = ({ setCompanyPromptContext, setPositionPromptContext }) => {
+  const [loading, setLoading] = useState<boolean>(false);
 
-  const isContainsVariables = value => {
+  const isContainsVariables = (value: string): string | true => {
     if (!value.includes("{person}") || !value.includes("{context}")) {
       return "Промпт должен содержать переменные: {person}, {context}";
     }
-    return true
-  }
+    return true;
+  };
 
   const {
     control: companyControl,
@@ -30,7 +36,7 @@ const PromptForm = ({setCompanyPromptContext, setPositionPromptContext}) => {
       prompt_text: "",
       name: "company",
     },
-  })
+  });
 
   const {
     control: positionControl,
@@ -38,77 +44,73 @@ const PromptForm = ({setCompanyPromptContext, setPositionPromptContext}) => {
     setValue: setPositionValue,
     formState: { errors: positionErrors },
     setError: setPositionError,
-  } = useForm({
+  } = useForm<FormInput>({
     defaultValues: {
       prompt_text: "",
       name: "position",
-    }
-  })
+    },
+  });
 
   useEffect(() => {
-    const promises = []
+    const promises: Promise<void>[] = [];
 
-    const company_value = localStorage.getItem("company")
-    if (company_value === null) {
+    const companyValue = localStorage.getItem("company");
+    if (companyValue === null) {
       promises.push(
         fetch(`${import.meta.env.VITE_API_BASE_URL}/prompt/company`)
           .then(resp => resp.json())
           .then((prompt: Prompt) => {
-            setCompanyValue("prompt_text", prompt.prompt_text)
-            setCompanyPromptContext(prompt.prompt_text)
+            setCompanyValue("prompt_text", prompt.prompt_text);
+            setCompanyPromptContext(prompt.prompt_text);
           })
-      )
+      );
     } else {
-      setCompanyValue("prompt_text", company_value)
-      setCompanyPromptContext(company_value)
+      setCompanyValue("prompt_text", companyValue);
+      setCompanyPromptContext(companyValue);
     }
 
-    const position_value = localStorage.getItem("position");
-    if (position_value === null) {
+    const positionValue = localStorage.getItem("position");
+    if (positionValue === null) {
       promises.push(
         fetch(`${import.meta.env.VITE_API_BASE_URL}/prompt/position`)
           .then(resp => resp.json())
           .then((prompt: Prompt) => {
-            setPositionValue("prompt_text", prompt.prompt_text)
-            setPositionPromptContext(prompt.prompt_text)
-          }),
-      )
+            setPositionValue("prompt_text", prompt.prompt_text);
+            setPositionPromptContext(prompt.prompt_text);
+          })
+      );
     } else {
-      setPositionValue("prompt_text", position_value)
-      setPositionPromptContext(position_value)
+      setPositionValue("prompt_text", positionValue);
+      setPositionPromptContext(positionValue);
     }
 
-    Promise.all(promises)
-  }, [])
+    Promise.all(promises).catch(console.error);
+  }, [setCompanyPromptContext, setPositionPromptContext, setCompanyValue, setPositionValue]);
 
-  // const onUpdateCompanyPrompt: SubmitHandler<FormInput> = (payload)
-
-  const onUpdatePrompt = (payload: FormInput, valueCb, errorCb) => {
-    const error = isContainsVariables(payload.prompt_text)
+  const onUpdatePrompt = (payload: FormInput, valueCb: (value: string) => void, errorCb: (msg: string) => void) => {
+    const error = isContainsVariables(payload.prompt_text);
     if (error !== true) {
-      errorCb(error)
-      return
+      errorCb(error);
+      return;
     }
 
-    valueCb(payload.prompt_text)
-    localStorage.setItem(payload.name, payload.prompt_text)
-  }
+    valueCb(payload.prompt_text);
+    localStorage.setItem(payload.name, payload.prompt_text);
+  };
 
-  const onResetPrompt = (payload: FormInput, cb) => {
-    setLoading(true)
-    fetch(
-      `${import.meta.env.VITE_API_BASE_URL}/prompt/${payload.name}/reset`,
-      {
-        method: "PATCH"
-      }
-    )
+  const onResetPrompt = (payload: FormInput, cb: (fieldName: "prompt_text", value: string) => void) => {
+    setLoading(true);
+    fetch(`${import.meta.env.VITE_API_BASE_URL}/prompt/${payload.name}/reset`, {
+      method: "PATCH",
+    })
       .then(resp => resp.json())
       .then((prompt: Prompt) => {
-        cb("prompt_text", prompt.prompt_text)
-        localStorage.setItem(payload.name, prompt.prompt_text)
+        cb("prompt_text", prompt.prompt_text);
+        localStorage.setItem(payload.name, prompt.prompt_text);
       })
-      .then(() => setLoading(false))
-  }
+      .finally(() => setLoading(false))
+      .catch(console.error);
+  };
 
   return (
     <Stack spacing={3}>
@@ -117,17 +119,17 @@ const PromptForm = ({setCompanyPromptContext, setPositionPromptContext}) => {
           <Controller
             name="prompt_text"
             control={companyControl}
-            render={({ field }) =>
+            render={({ field }) => (
               <TextField
                 {...field}
-                error={Object.entries(companyErrors).length > 0}
-                helperText={Object.entries(companyErrors).length > 0 && companyErrors?.prompt_text.message}
+                error={!!companyErrors.prompt_text}
+                helperText={companyErrors.prompt_text?.message}
                 id="outlined-textarea"
                 label="Промпт, чтобы узнать, в какой компании работает сотрудник"
                 multiline
                 rows={4}
               />
-            }
+            )}
           />
           <Stack direction="row" spacing={2}>
             <LoadingButton
@@ -143,7 +145,7 @@ const PromptForm = ({setCompanyPromptContext, setPositionPromptContext}) => {
               onClick={companyHandleSubmit(payload => onUpdatePrompt(
                 payload,
                 (value: string) => setCompanyPromptContext(value),
-                (msg: string) => setCompanyError("prompt_text", {"type": "not_set_variable", "message": msg})
+                (msg: string) => setCompanyError("prompt_text", { type: "not_set_variable", message: msg })
               ))}
             >
               Обновить
@@ -156,42 +158,42 @@ const PromptForm = ({setCompanyPromptContext, setPositionPromptContext}) => {
           <Controller
             name="prompt_text"
             control={positionControl}
-            render={({ field }) =>
+            render={({ field }) => (
               <TextField
                 {...field}
-                error={Object.entries(positionErrors).length > 0}
-                helperText={Object.entries(positionErrors).length > 0 && positionErrors?.prompt_text.message}
+                error={!!positionErrors.prompt_text}
+                helperText={positionErrors.prompt_text?.message}
                 id="outlined-textarea"
                 label="Промпт, чтобы узнать, на какой позиции работает сотрудник"
                 multiline
                 rows={4}
               />
-            }
+            )}
           />
           <Stack direction="row" spacing={2}>
             <LoadingButton
-                loading={loading}
-                variant="outlined"
-                onClick={positionHandleSubmit(payload => onResetPrompt(payload, setPositionValue))}
-              >
-                Откатить
-              </LoadingButton>
-              <LoadingButton
-                loading={loading}
-                variant="contained"
-                onClick={positionHandleSubmit(payload => onUpdatePrompt(
-                  payload,
-                  (value: string) => setPositionPromptContext(value),
-                  (msg: string) => setPositionError("prompt_text", {"type": "not_set_variable", "message": msg})
-                ))}
-              >
-                Обновить
-              </LoadingButton>
+              loading={loading}
+              variant="outlined"
+              onClick={positionHandleSubmit(payload => onResetPrompt(payload, setPositionValue))}
+            >
+              Откатить
+            </LoadingButton>
+            <LoadingButton
+              loading={loading}
+              variant="contained"
+              onClick={positionHandleSubmit(payload => onUpdatePrompt(
+                payload,
+                (value: string) => setPositionPromptContext(value),
+                (msg: string) => setPositionError("prompt_text", { type: "not_set_variable", message: msg })
+              ))}
+            >
+              Обновить
+            </LoadingButton>
           </Stack>
         </Stack>
       </form>
     </Stack>
-  )
-}
+  );
+};
 
-export default PromptForm
+export default PromptForm;

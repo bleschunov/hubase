@@ -1,9 +1,10 @@
 import React from 'react';
 import { useFormContext, Controller } from 'react-hook-form';
 import { TextField, Stack } from '@mui/material';
+import { INERForm, IGPTForm } from '../models/CsvResponse';
 
 const SearchEngineQueryTemplateForm: React.FC = () => {
-    const { control } = useFormContext();
+    const { control } = useFormContext<INERForm | IGPTForm>();
     return (
         <Stack spacing={2}>
             <Controller
