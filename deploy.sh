@@ -1,4 +1,5 @@
 cd web_ui;
+sudo yarn install
 sudo yarn vite build --base=/static/;
 cp -r dist/* ../hubase/front/;
 cd ../hubase;
