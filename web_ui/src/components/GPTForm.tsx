@@ -1,7 +1,6 @@
 import React from 'react';
 import {useFormContext, Controller} from 'react-hook-form';
 import {Stack, TextField} from '@mui/material';
-import SearchEngineQueryForm from './SearchEngineQueryForm';
 import LeadParamsForm from './LeadParamsForm';
 
 interface IGPTForm {
@@ -11,43 +10,28 @@ interface IGPTForm {
     positions: string;
     search_query_template: string;
     max_lead_count: number;
-    companyPrompt: string;
-    positionPrompt: string;
+    prompt: string;
     openai_api_key: string;
     openai_api_base: string;
 }
 
-const GPTForm: React.FC = () => {
+const GPTForm: React.FC<IGPTForm> = () => {
     const {control} = useFormContext<IGPTForm>();
 
     return (
         <Stack spacing={2}>
             <Controller
-                name="companyPrompt"
+                name="prompt"
                 control={control}
                 defaultValue=""
                 render={({field}) => (
                     <TextField
                         {...field}
-                        label="Company Prompt"
-                        variant="outlined"
+                        label="Промпт"
+                        placeholder="Введите ваш запрос"
                     />
                 )}
             />
-            <Controller
-                name="positionPrompt"
-                control={control}
-                defaultValue=""
-                render={({field}) => (
-                    <TextField
-                        {...field}
-                        label="Position Prompt"
-                        variant="outlined"
-                    />
-                )}
-            />
-            <SearchEngineQueryForm/>
-            <LeadParamsForm/>
             <Controller
                 name="openai_api_key"
                 control={control}
@@ -73,6 +57,7 @@ const GPTForm: React.FC = () => {
                     />
                 )}
             />
+            <LeadParamsForm/>
         </Stack>
     );
 };

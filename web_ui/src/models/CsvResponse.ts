@@ -37,8 +37,7 @@ interface IGPTForm {
     positions: string;
     search_query_template: string;
     max_lead_count: number;
-    companyPrompt: string;
-    positionPrompt: string;
+    prompt: string;
     openai_api_key: string;
     openai_api_base: string;
 }

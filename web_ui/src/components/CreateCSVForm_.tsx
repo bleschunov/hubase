@@ -14,17 +14,18 @@ import { v4 as uuidv4 } from 'uuid';
 import NERForm from './NERForm';
 import GPTForm from './GPTForm';
 import { INERForm, IGPTForm, IRowWithId, Strategy, CsvResponse, IRow } from '../models/CsvResponse';
-import DataGridTable from "./table/DataGridTable.tsx";
-import SimpleTable from "./table/SimpleTable.tsx";
+import DataGridTable from "./table/DataGridTable";
+import SimpleTable from "./table/SimpleTable";
 import LogViewer from './LogViewer';
-import SearchQueryTester from './SearchQueryTester';
+import SearchEngineQueryTemplateForm from "./SearchEngineQueryTemplateForm";
 
 type ViewType = "simple" | "dataGrid";
 
 const CreateCSVForm = () => {
     const gptOptionsForm = useForm<IGPTForm>({
         defaultValues: {
-            search_query_template: "{company} AND {sites}",
+            strategy: "gpt",
+            search_query_template: "{company} AND {site}",
             companies: "Мосстрой",
             sites: "sbis.ru",
             max_lead_count: 2,
@@ -35,6 +36,7 @@ const CreateCSVForm = () => {
 
     const nerOptionsForm = useForm<INERForm>({
         defaultValues: {
+            strategy: "ner",
             search_query_template: "{company} AND {positions} AND {site}",
             companies: "Мосстрой",
             sites: "sbis.ru",
@@ -138,20 +140,20 @@ const CreateCSVForm = () => {
         setCsvDownloadLink("");
     };
 
-    let form = <NERForm />;
+    let form = <NERForm {...nerOptionsForm.getValues()}/>;
     let methods: UseFormReturn<INERForm | IGPTForm>;
 
     switch (strategy) {
         case "ner":
-            form = <NERForm />;
+            form = <NERForm {...nerOptionsForm.getValues()} />;
             methods = nerOptionsForm as UseFormReturn<INERForm | IGPTForm>;
             break;
         case "gpt":
-            form = <GPTForm />;
+            form = <GPTForm {...gptOptionsForm.getValues()} />;
             methods = gptOptionsForm as UseFormReturn<INERForm | IGPTForm>;
             break;
         default:
-            form = <NERForm />;
+            form = <NERForm {...nerOptionsForm.getValues()} />;
             methods = nerOptionsForm as UseFormReturn<INERForm | IGPTForm>;
             break;
     }
@@ -170,7 +172,7 @@ const CreateCSVForm = () => {
                         <MenuItem value="gpt">GPT-4</MenuItem>
                     </Select>
                     {form}
-                    <SearchQueryTester
+                    <SearchEngineQueryTemplateForm
                         onTestSearchQuery={onTestSearchQuery}
                         compiledSearchQueries={compiledSearchQueries}
                         loading={loading}

@@ -1,7 +1,6 @@
 import React from 'react';
 import {useFormContext, Controller} from 'react-hook-form';
 import {Stack, TextField} from '@mui/material';
-import SearchEngineQueryForm from './SearchEngineQueryForm';
 import LeadParamsForm from './LeadParamsForm';
 
 interface INERForm {
@@ -15,7 +14,7 @@ interface INERForm {
     positionPrompt: string;
 }
 
-const NERForm: React.FC = () => {
+const NERForm: React.FC<INERForm> = () => {
     const {control} = useFormContext<INERForm>();
 
     return (
@@ -27,7 +26,7 @@ const NERForm: React.FC = () => {
                 render={({field}) => (
                     <TextField
                         {...field}
-                        label="Company Prompt"
+                        label="Компании"
                         variant="outlined"
                     />
                 )}
@@ -39,12 +38,11 @@ const NERForm: React.FC = () => {
                 render={({field}) => (
                     <TextField
                         {...field}
-                        label="Position Prompt"
+                        label="Должности"
                         variant="outlined"
                     />
                 )}
             />
-            <SearchEngineQueryForm/>
             <LeadParamsForm/>
         </Stack>
     );
