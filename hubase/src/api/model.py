@@ -1,20 +1,26 @@
 import typing as t
 
-from pydantic import BaseModel, SecretStr
+from pydantic import BaseModel, SecretStr, RootModel
 
 
-class CsvOptions(BaseModel):
-    companies: list[str]
-    sites: list[str]
-    positions: list[str]
-    search_query_template: str
-    access_token: SecretStr
-    company_prompt: str
-    position_prompt: str
-    max_lead_count: int
-    openai_api_key: SecretStr
-    openai_api_base: str
+class CsvOptions(RootModel[object]):
+    class Info(BaseModel):
+        companies: list[str]
+        sites: list[str]
+        positions: list[str]
+        search_query_template: str
+        access_token: SecretStr
+        max_lead_count: int
 
+    class GPT(Info):
+        openai_api_key: SecretStr
+        openai_api_base: str
+
+    class NER(Info):
+        company_prompt: str
+        position_prompt: str
+
+    root: t.Union[GPT, NER]
 
 class CsvDownloadLink(BaseModel):
     download_link: str

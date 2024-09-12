@@ -80,10 +80,12 @@ const CreateCSVForm = () => {
             setCompiledSearchQueries([]);
             logMessage(`Ошибка: ${resp_data.data}`);
             setLoading(false);
+            return false
         } else if (resp_data.type === "success") {
             const compiled_queries = resp_data.data;
             setCompiledSearchQueries(compiled_queries);
             setLoading(false);
+            return true
         }
     };
 

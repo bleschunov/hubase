@@ -48,32 +48,35 @@ def _main(
 
         openai_api_base = csv_options.openai_api_base if csv_options.openai_api_base != "" else settings.openai_api_base
 
-        yield from GPTCSVRows(
-            people=GPTPeople(
-                text=md,
-                prompt_template=prompt_template,
-                api_key=openai_api_key.get_secret_value(),
-                logger=logger,
-                openai_api_base=openai_api_base,
-                batch_size=512,
-            ),
-            url=url,
-            searching_params=searching_params,
-        ).iter()
+        if isinstance(csv_options.root, CsvOptions.GPT):
+            yield from GPTCSVRows(
+                people=GPTPeople(
+                    text=md,
+                    prompt_template=prompt_template,
+                    api_key=openai_api_key.get_secret_value(),
+                    logger=logger,
+                    openai_api_base=openai_api_base,
+                    batch_size=512,
+                ),
+                url=url,
+                searching_params=searching_params,
+            ).iter()
 
-        # yield from NerCSVRows(
-        #     people=NerPeople(
-        #         md,
-        #         NerClient(settings.hugging_face_ner_api_url, settings.hugging_face_token, logger),
-        #         logger,
-        #         batch_size=512,
-        #     ),
-        #     llm_qa=LLMClientQAMistral(logger),
-        #     company_prompt=InMemoryPrompt(csv_options.company_prompt),
-        #     position_prompt=InMemoryPrompt(csv_options.position_prompt),
-        #     url=url,
-        #     searching_params=searching_params,
-        # ).iter()
+        elif isinstance(csv_options.root, CsvOptions.NER):
+            yield from NerCSVRows(
+                people=NerPeople(
+                    md,
+                    NerClient(settings.hugging_face_ner_api_url, settings.hugging_face_token, logger),
+                    logger,
+                    batch_size=512,
+                ),
+                llm_qa=LLMClientQAMistral(logger),
+                company_prompt=InMemoryPrompt(csv_options.company_prompt),
+                position_prompt=InMemoryPrompt(csv_options.position_prompt),
+                url=url,
+                searching_params=searching_params,
+            ).iter()
+
 
 
 def get_names_and_positions_csv(
