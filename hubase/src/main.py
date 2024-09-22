@@ -13,72 +13,125 @@ from word_classifications.gpt.people import GPTPeople
 
 
 def _main(
-    csv_options: CsvOptions,
-    logger: Logger
+        csv_options: CsvOptions,
+        logger: Logger
 ) -> t.Iterator[CSVRow]:
     search_queries = SearchQueries(
         csv_options.search_query_template,
         csv_options.companies,
         csv_options.positions,
-        csv_options.sites
+        csv_options.sites if csv_options.mode == "parser" else []
     )
 
-    for url, searching_params in SearchPage(search_queries, logger, url_limit=5).found():
-        try:
-            md = HubaseMd(url, logger).md
+    openai_api_key = (
+        csv_options.openai_api_key.get_secret_value()
+        if csv_options.openai_api_key.get_secret_value() != ""
+        else settings.openai_api_key
+    )
 
-        except JinaException as err:
-            yield {
-                "name": err,
-                "position": None,
-                "searched_company": searching_params["company"],
-                "inferenced_company": None,
-                "original_url": url,
-                "source": None,
-            }
-            continue
+    openai_api_base = csv_options.openai_api_base or settings.openai_api_base
 
-        with open("../prompts/get_people_from_text_short.txt") as fd:
-            prompt_template = fd.read()
+    site_count = 0
+    lead_count = 0
 
-        if csv_options.openai_api_key.get_secret_value() != "":
-            openai_api_key = csv_options.openai_api_key
-        else:
-            openai_api_key = settings.openai_api_key
+    if csv_options.mode == "parser":
+        for url, searching_params in SearchPage(search_queries, logger, url_limit=500).found():
+            if lead_count >= csv_options.max_lead_count:
+                break
 
-        openai_api_base = csv_options.openai_api_base if csv_options.openai_api_base != "" else settings.openai_api_base
+            lead_count += 1
 
-        yield from GPTCSVRows(
-            people=GPTPeople(
-                text=md,
-                prompt_template=prompt_template,
-                api_key=openai_api_key.get_secret_value(),
-                logger=logger,
-                openai_api_base=openai_api_base,
-                batch_size=512,
-            ),
-            url=url,
-            searching_params=searching_params,
-        ).iter()
+            try:
+                md = HubaseMd(url, logger).md
+            except JinaException as err:
+                yield {
+                    "name": err,
+                    "position": None,
+                    "searched_company": searching_params["company"],
+                    "inferenced_company": None,
+                    "original_url": url,
+                    "source": None,
+                }
+                continue
 
-        # yield from NerCSVRows(
-        #     people=NerPeople(
-        #         md,
-        #         NerClient(settings.hugging_face_ner_api_url, settings.hugging_face_token, logger),
-        #         logger,
-        #         batch_size=512,
-        #     ),
-        #     llm_qa=LLMClientQAMistral(logger),
-        #     company_prompt=InMemoryPrompt(csv_options.company_prompt),
-        #     position_prompt=InMemoryPrompt(csv_options.position_prompt),
-        #     url=url,
-        #     searching_params=searching_params,
-        # ).iter()
+            with open("../prompts/get_people_from_text_short.txt") as fd:
+                prompt_template = fd.read()
+
+            for lead in GPTCSVRows(
+                    people=GPTPeople(
+                        text=md,
+                        prompt_template=prompt_template,
+                        api_key=openai_api_key.get_secret_value(),
+                        logger=logger,
+                        openai_api_base=openai_api_base,
+                        batch_size=512,
+                    ),
+                    url=url,
+                    searching_params=searching_params,
+            ).iter():
+                yield lead
+                lead_count += 1
+                if lead_count >= csv_options.max_lead_count:
+                    break
+
+    elif csv_options.mode == "researcher":
+        for url, searching_params in SearchPage(search_queries, logger, url_limit=1000).found():
+            if site_count >= csv_options.max_sites_count:
+                break
+
+            site_count += 1
+
+            try:
+                md = HubaseMd(url, logger).md
+            except JinaException as err:
+                yield {
+                    "name": err,
+                    "position": None,
+                    "searched_company": searching_params["company"],
+                    "inferenced_company": None,
+                    "original_url": url,
+                    "source": None,
+                }
+                continue
+
+            with open("../prompts/get_people_from_sites.txt") as fd:
+                prompt_template = fd.read()
+
+            for lead in GPTCSVRows(
+                    people=GPTPeople(
+                        text=md,
+                        prompt_template=prompt_template,
+                        api_key=openai_api_key.get_secret_value(),
+                        logger=logger,
+                        openai_api_base=openai_api_base,
+                        batch_size=512,
+                    ),
+                    url=url,
+                    searching_params=searching_params,
+            ).iter():
+                yield lead
+                site_count += 1
+                if site_count >= csv_options.max_sites_count:
+                    break
+
+            # yield from NerCSVRows(
+            #     people=NerPeople(
+            #         md,
+            #         NerClient(settings.hugging_face_ner_api_url, settings.hugging_face_token, logger),
+            #         logger,
+            #         batch_size=512,
+            #     ),
+            #     llm_qa=LLMClientQAMistral(logger),
+            #     company_prompt=InMemoryPrompt(csv_options.company_prompt),
+            #     position_prompt=InMemoryPrompt(csv_options.position_prompt),
+            #     url=url,
+            #     searching_params=searching_params,
+            # ).iter()
 
 
 def get_names_and_positions_csv(
-    csv_options: CsvOptions,
-    logger: Logger
+        csv_options: CsvOptions,
+        logger: Logger
 ) -> str:
     headers = ["name", "position", "searched_company", "inferenced_company", "original_url", "source"]
     with HubaseCsv(headers=headers, settings=settings) as csv_:
@@ -88,8 +141,8 @@ def get_names_and_positions_csv(
 
 
 def get_names_and_positions_csv_with_progress(
-    csv_options: CsvOptions,
-    logger: Logger
+        csv_options: CsvOptions,
+        logger: Logger
 ) -> t.Iterator[CSVRow | str]:
     headers = ["name", "position", "searched_company", "inferenced_company", "original_url", "source"]
 

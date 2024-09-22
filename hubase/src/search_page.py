@@ -15,6 +15,6 @@ class SearchPage:
     def found(self) -> t.Iterator[tuple[str, dict[str, str]]]:
         for search_query in self.__search_queries.compiled():
             self.__logger.info(f"Делаем запрос: {search_query.query}")
-            urls = google.search(search_query.query, stop=self.__url_limit)
+            urls = google.search(search_query.query)
             for url in urls:
                 yield url, search_query.search_params
