@@ -34,6 +34,8 @@ class GPTPeople(HubaseIterator):
         *,
         batch_size: int = 2000,
         openai_api_base: str | None = None,
+        mode: str,
+        site_name: str
     ) -> None:
         if "{input}" not in prompt_template:
             raise ValueError("Переменная {input} должна быть в промпте.")
@@ -44,6 +46,8 @@ class GPTPeople(HubaseIterator):
         self.__client = OpenAI(api_key=self.__api_key)
         self.__logger = logger
         self.__batch_size = batch_size
+        self.__mode = mode
+        self.__site_name = site_name
 
         if openai_api_base is not None:
             self.__client.base_url = openai_api_base
@@ -55,6 +59,12 @@ class GPTPeople(HubaseIterator):
                     person=person,
                     source=batch,
                 )
+                if self.__mode == "researcher":
+                    found_leads = True
+                    break
+
+            if found_leads and self.__mode == "researcher":
+                break
 
     def __text_batches(self) -> t.Iterator[str]:
         for i in range(0, len(self.__text), self.__batch_size):

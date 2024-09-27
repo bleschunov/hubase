@@ -1,5 +1,6 @@
 import typing as t
 from logging import Logger
+from urllib.parse import urlparse
 
 from api.model import CsvOptions
 from hubase_csv import HubaseCsv
@@ -31,88 +32,56 @@ def _main(
 
     openai_api_base = csv_options.openai_api_base or settings.openai_api_base
 
-    site_count = 0
+    limit = csv_options.max_lead_count if csv_options.mode == "parser" else csv_options.max_sites_count
+
     lead_count = 0
+    site_count = 0
 
-    if csv_options.mode == "parser":
-        for url, searching_params in SearchPage(search_queries, logger, url_limit=500).found():
-            if lead_count >= csv_options.max_lead_count:
-                break
+    for url, searching_params in SearchPage(search_queries, logger).found():
+        if (csv_options.mode == "parser" and lead_count >= limit) or (
+                csv_options.mode == "researcher" and site_count >= limit):
+            logger.info(
+                f"Достигнуто максимальное установленное количество "
+                f"{('лидов' if csv_options.mode == 'parser' else 'сайтов')}: "
+                f"{lead_count if csv_options.mode == 'parser' else site_count}.")
+            break
 
+        site_count += 1 if csv_options.mode == "researcher" else 0
+
+        try:
+            md = HubaseMd(url, logger).md
+        except JinaException as err:
+            yield {
+                "name": str(err),
+                "position": None,
+                "searched_company": searching_params["company"],
+                "inferenced_company": None,
+                "original_url": url,
+                "source": None,
+            }
+            continue
+
+        with open("../prompts/get_people_from_text_short.txt") as fd:
+            prompt_template = fd.read()
+
+        for lead in GPTCSVRows(
+                people=GPTPeople(
+                    text=md,
+                    prompt_template=prompt_template,
+                    api_key=openai_api_key.get_secret_value(),
+                    logger=logger,
+                    openai_api_base=openai_api_base,
+                    batch_size=512,
+                    mode=csv_options.mode,
+                    site_name=urlparse(url).netloc
+                ),
+                url=url,
+                searching_params=searching_params,
+        ).iter():
+            yield lead
             lead_count += 1
-
-            try:
-                md = HubaseMd(url, logger).md
-            except JinaException as err:
-                yield {
-                    "name": err,
-                    "position": None,
-                    "searched_company": searching_params["company"],
-                    "inferenced_company": None,
-                    "original_url": url,
-                    "source": None,
-                }
-                continue
-
-            with open("../prompts/get_people_from_text_short.txt") as fd:
-                prompt_template = fd.read()
-
-            for lead in GPTCSVRows(
-                    people=GPTPeople(
-                        text=md,
-                        prompt_template=prompt_template,
-                        api_key=openai_api_key.get_secret_value(),
-                        logger=logger,
-                        openai_api_base=openai_api_base,
-                        batch_size=512,
-                    ),
-                    url=url,
-                    searching_params=searching_params,
-            ).iter():
-                yield lead
-                lead_count += 1
-                if lead_count >= csv_options.max_lead_count:
-                    break
-
-    elif csv_options.mode == "researcher":
-        for url, searching_params in SearchPage(search_queries, logger, url_limit=1000).found():
-            if site_count >= csv_options.max_sites_count:
+            if csv_options.mode == "parser" and lead_count >= limit:
                 break
-
-            site_count += 1
-
-            try:
-                md = HubaseMd(url, logger).md
-            except JinaException as err:
-                yield {
-                    "name": err,
-                    "position": None,
-                    "searched_company": searching_params["company"],
-                    "inferenced_company": None,
-                    "original_url": url,
-                    "source": None,
-                }
-                continue
-
-            with open("../prompts/get_people_from_sites.txt") as fd:
-                prompt_template = fd.read()
-
-            for lead in GPTCSVRows(
-                    people=GPTPeople(
-                        text=md,
-                        prompt_template=prompt_template,
-                        api_key=openai_api_key.get_secret_value(),
-                        logger=logger,
-                        openai_api_base=openai_api_base,
-                        batch_size=512,
-                    ),
-                    url=url,
-                    searching_params=searching_params,
-            ).iter():
-                yield lead
-                site_count += 1
-                if site_count >= csv_options.max_sites_count:
-                    break
 
             # yield from NerCSVRows(
             #     people=NerPeople(
