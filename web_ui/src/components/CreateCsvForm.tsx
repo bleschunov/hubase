@@ -172,23 +172,6 @@ const CreateCsvForm = () => {
                 const csv_row = row.data as IRow;
                 const csv_row_with_id = {id: uuidv4(), ...csv_row};
 
-                if (mode === "parser") {
-                    const currentCount = rows.length + 1;
-                    const totalLeads = payload_data.max_lead_count;
-                    const progressPercent = Math.round((currentCount / totalLeads) * 100);
-                    logMessage(
-                        `Обрабатываем батч ${currentCount}/${totalLeads} (${progressPercent}%)`
-                    );
-                }
-                else if (mode === "researcher") {
-                    const currentCount = rows.length + 1;
-                    const totalSites = payload_data.max_sites_count;
-                    const progressPercent = Math.round((currentCount / totalSites) * 100);
-                    logMessage(
-                        `Начали поиск лидов на сайте ${csv_row.site}: ${currentCount}/${totalSites} (${progressPercent}%)`
-                    );
-                }
-
                 setCsvDownloadLink(csv_row.download_link);
                 setRows((prev) => [...prev, csv_row_with_id]);
             } else if (row.type === "log") {
@@ -228,13 +211,10 @@ const CreateCsvForm = () => {
                     <MenuItem value="researcher">Ресерчер</MenuItem>
                 </Select>
             </FormControl>
-
-            {mode === "parser" && (
-                <PromptForm
-                    setCompanyPromptContext={setCompanyPromptContext}
-                    setPositionPromptContext={setPositionPromptContext}
-                />
-            )}
+            <PromptForm
+                setCompanyPromptContext={setCompanyPromptContext}
+                setPositionPromptContext={setPositionPromptContext}
+            />
             <Divider/>
             <form>
                 <Stack spacing={2}>
