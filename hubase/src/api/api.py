@@ -131,7 +131,8 @@ def get_csv(csv_options: CsvOptions) -> CsvDownloadLink:
     except MistralAPIException as err:
         msg = json.loads("{" + err.message.split("{")[-1])
         raise HTTPException(status_code=403, detail=f"Ошибка MistralAPI: {msg['message']}")
-    return CsvDownloadLink(download_link=f"http://{settings.download_host}:{settings.port}/static/results/{download_link}")
+    return CsvDownloadLink(
+        download_link=f"http://{settings.download_host}:{settings.port}/static/results/{download_link}")
 
 
 @app.get("/api/v1/prompt/{name}")
@@ -165,7 +166,6 @@ def compile_search_queries(search_query_template: t.Annotated[str, Body()]) -> S
     else:
         compiled = [q.query for q in queries.compiled()]
         return SearchQueryResponse(type="success", data=compiled)
-
 
 
 app.mount("/static/results", StaticFiles(directory="../results"), name="results")

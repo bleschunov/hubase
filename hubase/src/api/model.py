@@ -12,8 +12,10 @@ class CsvOptions(BaseModel):
     company_prompt: str
     position_prompt: str
     max_lead_count: int
+    max_sites_count: int
     openai_api_key: SecretStr
     openai_api_base: str
+    mode: str
 
 
 class CsvDownloadLink(BaseModel):
