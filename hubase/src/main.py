@@ -20,7 +20,9 @@ def _main(
         csv_options.search_query_template,
         csv_options.companies,
         csv_options.positions,
-        csv_options.sites
+        csv_options.sites,
+        csv_options.exclude_vacations,
+        csv_options.exclude_profiles
     )
 
     for url, searching_params in SearchPage(search_queries, logger, url_limit=5).found():

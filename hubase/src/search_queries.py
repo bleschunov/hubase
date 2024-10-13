@@ -16,7 +16,8 @@ class SearchQuery:
 class SearchQueries:
     __allowed_variables = {"{company}", "{site}", "{positions}", "{position}"}
 
-    def __init__(self, template: str, companies: list[str], positions: list[str], sites: list[str]) -> None:
+    def __init__(self, template: str, companies: list[str], positions: list[str], sites: list[str],
+                 exclude_vacations: bool, exclude_profiles: bool) -> None:
         self.__template = template
         self.__companies = companies
         self.__positions = positions
@@ -26,21 +27,35 @@ class SearchQueries:
         self.__is_singular_pos_in = "{position}" in self.__template
 
         self.__validate_template()
+        self.exclude_vacations = exclude_vacations
+        self.exclude_profiles = exclude_profiles
 
         if self.__is_plural_pos_in:
             self.__position_variable = "positions"
         else:
             self.__position_variable = "position"
 
+    def __get_exclusion_sites(self) -> list[str]:
+        exclusion_sites = []
+        if self.exclude_vacations:
+            with open("../sites/vacations.txt", "r") as file:
+                exclusion_sites.extend([line.strip() for line in file.readlines()])
+        if self.exclude_profiles:
+            with open("../sites/companies_profiles.txt", "r") as file:
+                exclusion_sites.extend([line.strip() for line in file.readlines()])
+        return exclusion_sites
+
     def compiled(self) -> t.Iterator[SearchQuery]:
+        exclusion_sites = self.__get_exclusion_sites()
         positions_ = self.__build_positions_list()
         for company in self.__companies:
             logging.info(f"Поиск для компании: {company}")
             for site in self.__sites:
                 for position in positions_:
+                    exclusion_query = " ".join([f"-site:{site}" for site in exclusion_sites])
                     search_params = {
                         "company": company,
-                        "site": f'site:{site}' if site != "" else "",
+                        "site": f'site:{site} {exclusion_query}' if site != "" else exclusion_query,
                         self.__position_variable: position
                     }
                     yield SearchQuery(
