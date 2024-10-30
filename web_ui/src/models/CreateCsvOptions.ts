@@ -9,6 +9,7 @@ interface CreateCsvOptions {
   max_lead_count: number;
   openai_api_key: string;
   openai_api_base: string;
+  exclude_sites_list_name: string;
 }
 
 export type {
