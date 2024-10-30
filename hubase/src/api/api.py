@@ -155,15 +155,14 @@ def reset_prompt(name: str) -> Prompt:
 
 @app.post("/api/v1/search_query")
 def compile_search_queries(search_query_template: t.Annotated[str, Body()],
-                           exclude_vacations: bool = Body(False),
-                           exclude_profiles: bool = Body(False),
+                            exclude_sites_list_name: t.Annotated[bool, Body()],
                            ) -> SearchQueryResponse:
     example_companies = ["WeDo", "Hub"]
     example_positions = ["директор дискотеки", "менеджер танцев"]
     example_sites = ["roga.com", "kopyta.com"]
     try:
         queries = SearchQueries(search_query_template, example_companies, example_positions, example_sites,
-                                exclude_vacations, exclude_profiles)
+                                exclude_sites_list_name)
     except ValueError as err:
         return SearchQueryResponse(type="error", data=str(err))
     else:

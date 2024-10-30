@@ -14,8 +14,7 @@ class CsvOptions(BaseModel):
     max_lead_count: int
     openai_api_key: SecretStr
     openai_api_base: str
-    exclude_vacations: bool
-    exclude_profiles: bool
+    exclude_sites_list_name: bool
 
 
 class CsvDownloadLink(BaseModel):

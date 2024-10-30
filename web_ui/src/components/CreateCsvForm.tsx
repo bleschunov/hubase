@@ -31,8 +31,7 @@ interface IFormInput {
     max_lead_count: number;
     openai_api_key: string;
     openai_api_base: string;
-    excludeVacations: boolean;
-    excludeProfiles: boolean;
+    exclude_sites_list_name: boolean;
 }
 
 interface SearchQueryResponse {
@@ -57,8 +56,7 @@ const CreateCsvForm = () => {
             max_lead_count: 2,
             openai_api_key: localStorage.getItem("openai_api_key") || "",
             openai_api_base: localStorage.getItem("openai_api_base") || "",
-            excludeVacations: false,
-            excludeProfiles: false,
+            exclude_sites_list_name: false,
         },
     });
 
@@ -132,8 +130,7 @@ const CreateCsvForm = () => {
             max_lead_count: payload_data.max_lead_count,
             openai_api_key: payload_data.openai_api_key,
             openai_api_base: payload_data.openai_api_base,
-            exclude_vacations: payload_data.excludeVacations || false,
-            exclude_profiles: payload_data.excludeProfiles || false,
+            exclude_sites_list_name: payload_data.exclude_sites_list_name,
         };
 
         const csvWs = new WebSocket(`${import.meta.env.VITE_API_BASE_URL_WS}/csv/progress`);
@@ -297,22 +294,12 @@ const CreateCsvForm = () => {
                     <FormControlLabel
                         control={
                             <Controller
-                                name="excludeVacations"
+                                name="exclude_sites_list_name"
                                 control={control}
                                 render={({field}) => <Checkbox {...field} />}
                             />
                         }
-                        label="Исключить сайты вакансий (vacations)"
-                    />
-                    <FormControlLabel
-                        control={
-                            <Controller
-                                name="excludeProfiles"
-                                control={control}
-                                render={({field}) => <Checkbox {...field} />}
-                            />
-                        }
-                        label="Исключить сайты с юр. информацией (profiles)"
+                        label="Исключить сайты"
                     />
                     <Box>
                         <LoadingButton
