@@ -7,7 +7,7 @@ class MockWordClassifications:
                 "searched_company": "Example Corp",
                 "inferenced_company": "Example Corp",
                 "original_url": "https://example.com/profile/johndoe",
-                "source": "LinkedIn by John Doe"
+                "source": "LinkedIn by John Doe",
             },
             {
                 "name": "Jane Smith",
@@ -15,7 +15,7 @@ class MockWordClassifications:
                 "searched_company": "Tech Solutions",
                 "inferenced_company": "Tech Solutions",
                 "original_url": "https://example.com/profile/janesmith",
-                "source": "Company Website by Jane Smith"
+                "source": "Company Website by Jane Smith",
             },
         ]
 

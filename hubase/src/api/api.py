@@ -5,16 +5,26 @@ import typing as t
 from pathlib import Path
 
 from asyncer import asyncify
-from fastapi import FastAPI, HTTPException, WebSocket, Body
+from fastapi import Body, FastAPI, HTTPException, WebSocket
 from mistralai.exceptions import MistralAPIException
 from pydantic import BaseModel
 from starlette.middleware.cors import CORSMiddleware
 from starlette.staticfiles import StaticFiles
 from starlette.websockets import WebSocketDisconnect
 
-from api.model import CsvResponse, CsvOptions, CsvRow, CsvDownloadLink, Prompt, UpdatePrompt
+from api.model import (
+    CsvDownloadLink,
+    CsvOptions,
+    CsvResponse,
+    CsvRow,
+    Prompt,
+    UpdatePrompt,
+)
 from exceptions import HuggingFaceException
-from main import get_names_and_positions_csv, get_names_and_positions_csv_with_progress
+from main import (
+    get_names_and_positions_csv,
+    get_names_and_positions_csv_with_progress,
+)
 from model import CSVRow
 from prompt.fs_prompt import FileSystemPrompt
 from search_queries import SearchQueries
@@ -45,7 +55,9 @@ class WebSocketLoggingHandler(logging.Handler):
         asyncio.run(self.__send_log(log_entry))
 
     async def __send_log(self, log_entry: str):
-        await self.websocket.send_json(CsvResponse(type="log", data=log_entry).model_dump())
+        await self.websocket.send_json(
+            CsvResponse(type="log", data=log_entry).model_dump()
+        )
 
 
 class SearchQueryResponse(BaseModel):
@@ -67,7 +79,7 @@ async def get_csv_with_progress(ws: WebSocket) -> None:
     logging.info("Доступ разрешён.")
 
     logging_handler = WebSocketLoggingHandler(ws)
-    formatter = logging.Formatter('%(asctime)s | %(message)s', "%H:%M:%S")
+    formatter = logging.Formatter("%(asctime)s | %(message)s", "%H:%M:%S")
     logging_handler.setFormatter(formatter)
 
     logger = logging.getLogger(f"ws_{hex(id(ws))}")
@@ -100,7 +112,7 @@ async def get_csv_with_progress(ws: WebSocket) -> None:
                 inferenced_company=row.inferenced_company,
                 original_url=row.original_url,
                 source=row.source,
-                download_link=download_link
+                download_link=download_link,
             )
 
             csv_response = CsvResponse(type="csv_row", data=row_dto)
@@ -113,7 +125,9 @@ async def get_csv_with_progress(ws: WebSocket) -> None:
         raise HTTPException(status_code=403, detail=str(err))
     except MistralAPIException as err:
         msg = json.loads("{" + err.message.split("{")[-1])
-        raise HTTPException(status_code=403, detail=f"Ошибка MistralAPI: {msg['message']}")
+        raise HTTPException(
+            status_code=403, detail=f"Ошибка MistralAPI: {msg['message']}"
+        )
 
 
 @app.post("/api/v1/csv")
@@ -125,13 +139,19 @@ def get_csv(csv_options: CsvOptions) -> CsvDownloadLink:
     logging.info("Доступ разрешён.")
 
     try:
-        download_link = get_names_and_positions_csv(csv_options.companies, csv_options.sites, csv_options.positions)
+        download_link = get_names_and_positions_csv(
+            csv_options.companies, csv_options.sites, csv_options.positions
+        )
     except HuggingFaceException as err:
         raise HTTPException(status_code=403, detail=str(err))
     except MistralAPIException as err:
         msg = json.loads("{" + err.message.split("{")[-1])
-        raise HTTPException(status_code=403, detail=f"Ошибка MistralAPI: {msg['message']}")
-    return CsvDownloadLink(download_link=f"http://{settings.download_host}:{settings.port}/static/results/{download_link}")
+        raise HTTPException(
+            status_code=403, detail=f"Ошибка MistralAPI: {msg['message']}"
+        )
+    return CsvDownloadLink(
+        download_link=f"http://{settings.download_host}:{settings.port}/static/results/{download_link}"
+    )
 
 
 @app.get("/api/v1/prompt/{name}")
@@ -142,24 +162,35 @@ def get_prompt(name: str) -> Prompt:
 
 @app.patch("/api/v1/prompt")
 def update_prompt(update_prompt: UpdatePrompt) -> Prompt:
-    new_prompt = FileSystemPrompt(Path(f"../prompts/{update_prompt.name}.txt")).update(update_prompt.prompt_text)
+    new_prompt = FileSystemPrompt(
+        Path(f"../prompts/{update_prompt.name}.txt")
+    ).update(update_prompt.prompt_text)
     return Prompt(prompt_text=new_prompt)
 
 
 @app.patch("/api/v1/prompt/{name}/reset")
 def reset_prompt(name: str) -> Prompt:
     default_prompt = FileSystemPrompt(Path(f"../prompts/{name}_default.txt"))
-    reset_prompt_ = FileSystemPrompt(Path(f"../prompts/{name}.txt")).update(default_prompt.get())
+    reset_prompt_ = FileSystemPrompt(Path(f"../prompts/{name}.txt")).update(
+        default_prompt.get()
+    )
     return Prompt(prompt_text=reset_prompt_)
 
 
 @app.post("/api/v1/search_query")
-def compile_search_queries(search_query_template: t.Annotated[str, Body()]) -> SearchQueryResponse:
+def compile_search_queries(
+    search_query_template: t.Annotated[str, Body()],
+) -> SearchQueryResponse:
     example_companies = ["WeDo", "Hub"]
     example_positions = ["директор дискотеки", "менеджер танцев"]
     example_sites = ["roga.com", "kopyta.com"]
     try:
-        queries = SearchQueries(search_query_template, example_companies, example_positions, example_sites)
+        queries = SearchQueries(
+            search_query_template,
+            example_companies,
+            example_positions,
+            example_sites,
+        )
     except ValueError as err:
         return SearchQueryResponse(type="error", data=str(err))
     else:
@@ -167,6 +198,9 @@ def compile_search_queries(search_query_template: t.Annotated[str, Body()]) -> S
         return SearchQueryResponse(type="success", data=compiled)
 
 
-
-app.mount("/static/results", StaticFiles(directory="../results"), name="results")
-app.mount("/static", StaticFiles(directory="../front", html=True), name="front")
+app.mount(
+    "/static/results", StaticFiles(directory="../results"), name="results"
+)
+app.mount(
+    "/static", StaticFiles(directory="../front", html=True), name="front"
+)

@@ -30,12 +30,17 @@ class NerClient:
 
         if "error" in response:
             self.__logger.warning(f"HuggingFace error. {response['error']}")
-            raise HuggingFaceException(response['error'])
+            raise HuggingFaceException(response["error"])
 
-        return list(map(lambda item: NerResponse(
-            entity_group=item["entity_group"],
-            score=item["score"],
-            word=item["word"],
-            start=item["start"],
-            end=item["end"],
-        ), response))
+        return list(
+            map(
+                lambda item: NerResponse(
+                    entity_group=item["entity_group"],
+                    score=item["score"],
+                    word=item["word"],
+                    start=item["start"],
+                    end=item["end"],
+                ),
+                response,
+            )
+        )

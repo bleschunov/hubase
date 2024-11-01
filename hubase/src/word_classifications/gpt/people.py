@@ -50,7 +50,9 @@ class GPTPeople(HubaseIterator):
 
     def iter(self) -> t.Iterator[GPTResponseWithSource]:
         for batch in self.__text_batches():
-            for person in self.__safely_call_gpt(self.__prompt_template.format(input=batch)):
+            for person in self.__safely_call_gpt(
+                self.__prompt_template.format(input=batch)
+            ):
                 yield GPTResponseWithSource(
                     person=person,
                     source=batch,
@@ -58,7 +60,7 @@ class GPTPeople(HubaseIterator):
 
     def __text_batches(self) -> t.Iterator[str]:
         for i in range(0, len(self.__text), self.__batch_size):
-            yield self.__text[i:i + self.__batch_size]
+            yield self.__text[i : i + self.__batch_size]
 
     def __safely_call_gpt(self, prompt: str) -> list[GPTPerson]:
         try:
@@ -71,7 +73,7 @@ class GPTPeople(HubaseIterator):
                     }
                 ],
                 temperature=0,
-                response_format=GPTResponse
+                response_format=GPTResponse,
             )
 
         except Exception as e:
@@ -80,8 +82,9 @@ class GPTPeople(HubaseIterator):
 
         else:
             people = response.choices[0].message.parsed.people
-            self.__logger.info(f"Получен ответ от GPT.")
+            self.__logger.info("Получен ответ от GPT.")
             self.__logger.info(f"Найдено людей: {len(people)}")
-            self.__logger.info(f"Использовано токенов: {response.usage.total_tokens}")
+            self.__logger.info(
+                f"Использовано токенов: {response.usage.total_tokens}"
+            )
             return response.choices[0].message.parsed.people
-
