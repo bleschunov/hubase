@@ -1,8 +1,7 @@
-import logging
-import typing as t
-import re
 import dataclasses
-
+import logging
+import re
+import typing as t
 
 logging.basicConfig(level=logging.INFO)
 
@@ -16,7 +15,13 @@ class SearchQuery:
 class SearchQueries:
     __allowed_variables = {"{company}", "{site}", "{positions}", "{position}"}
 
-    def __init__(self, template: str, companies: list[str], positions: list[str], sites: list[str]) -> None:
+    def __init__(
+        self,
+        template: str,
+        companies: list[str],
+        positions: list[str],
+        sites: list[str],
+    ) -> None:
         self.__template = template
         self.__companies = companies
         self.__positions = positions
@@ -40,12 +45,12 @@ class SearchQueries:
                 for position in positions_:
                     search_params = {
                         "company": company,
-                        "site": f'site:{site}' if site != "" else "",
-                        self.__position_variable: position
+                        "site": f"site:{site}" if site != "" else "",
+                        self.__position_variable: position,
                     }
                     yield SearchQuery(
                         query=self.__template.format(**search_params),
-                        search_params=search_params
+                        search_params=search_params,
                     )
 
     def __validate_template(self) -> None:

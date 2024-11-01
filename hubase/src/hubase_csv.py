@@ -8,15 +8,19 @@ from settings import Settings
 
 class HubaseCsv:
     def __init__(self, headers: list[str], settings: Settings):
-        self.__csv_name = f"result-{dt.datetime.now().strftime('%m%d%Y-%H%M%S')}.csv"
+        self.__csv_name = (
+            f"result-{dt.datetime.now().strftime('%m%d%Y-%H%M%S')}.csv"
+        )
         self.__fd: t.IO | None = None
         self.__csv: csv.DictWriter | None = None
         self.__headers = headers
         self.__settings = settings
 
     def __enter__(self) -> "HubaseCsv":
-        self.__fd = open(f"../results/{self.__csv_name}", mode='a+')
-        self.__csv = csv.DictWriter(self.__fd, fieldnames=self.__headers, extrasaction="ignore")
+        self.__fd = open(f"../results/{self.__csv_name}", mode="a+")
+        self.__csv = csv.DictWriter(
+            self.__fd, fieldnames=self.__headers, extrasaction="ignore"
+        )
         self.__csv.writeheader()
         return self
 

@@ -7,7 +7,9 @@ from search_queries import SearchQueries
 
 
 class SearchPage:
-    def __init__(self, search_queries: SearchQueries, logger: Logger, url_limit: int = 5) -> None:
+    def __init__(
+        self, search_queries: SearchQueries, logger: Logger, url_limit: int = 5
+    ) -> None:
         self.__search_queries = search_queries
         self.__url_limit = url_limit
         self.__logger = logger
