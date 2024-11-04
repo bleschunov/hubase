@@ -18,6 +18,7 @@ def _main(csv_options: CsvOptions, logger: Logger) -> t.Iterator[CSVRow]:
         csv_options.companies,
         csv_options.positions,
         csv_options.sites,
+        csv_options.excluded_sites_lists,
     )
 
     for url, searching_params in SearchPage(

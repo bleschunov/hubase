@@ -1,3 +1,13 @@
+import copy
+import logging
+
+import requests
+
+from exceptions import HuggingFaceException
+from llm_qa.abc import LLMClientQA
+from settings import settings
+
+
 class LLMClientQARoberta(LLMClientQA):
     def __init__(self):
         self.__api_url = "https://api-inference.huggingface.co/models/AlexKay/xlm-roberta-large-qa-multilingual-finedtuned-ru"

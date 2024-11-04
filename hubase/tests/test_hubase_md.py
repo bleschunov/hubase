@@ -40,6 +40,6 @@ class TestHubaseMd(unittest.TestCase):
         return_value=jina_error,
     )
     @patch.object(requests, "get", return_value=requests.Response())
-    def test_jina_return_md(self, *_) -> None:
+    def test_jina_raises_on_http_error(self, *_) -> None:
         with self.assertRaises(JinaException):
             _ = HubaseMd(url=MagicMock()).md
