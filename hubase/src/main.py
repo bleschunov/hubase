@@ -19,6 +19,7 @@ def _main(csv_options: CsvOptions, logger: Logger) -> t.Iterator[CSVRow]:
         csv_options.companies,
         csv_options.positions,
         csv_options.sites if csv_options.mode == "parser" else [],
+        csv_options.excluded_sites_lists,
     )
 
     openai_api_key = (
@@ -50,7 +51,6 @@ def _main(csv_options: CsvOptions, logger: Logger) -> t.Iterator[CSVRow]:
             break
 
         site_count += 1 if csv_options.mode == "researcher" else 0
-
         try:
             md = HubaseMd(url, logger).md
         except JinaException as err:

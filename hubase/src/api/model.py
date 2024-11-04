@@ -6,6 +6,7 @@ from pydantic import BaseModel, SecretStr
 class CsvOptions(BaseModel):
     companies: list[str]
     sites: list[str]
+    excluded_sites_lists: list[str]
     positions: list[str]
     search_query_template: str
     access_token: SecretStr

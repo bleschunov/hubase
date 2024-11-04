@@ -1,8 +1,8 @@
 import {
     Box,
     Button,
-    Divider,
-    FormControl,
+    Checkbox,Divider,
+    FormControl,FormControlLabel,
     InputLabel,
     Link,
     MenuItem,
@@ -15,7 +15,7 @@ import {v4 as uuidv4} from 'uuid';
 import LoadingButton from '@mui/lab/LoadingButton';
 import {Controller, SubmitHandler, useForm} from "react-hook-form";
 import {CreateCsvOptions} from "../models/CreateCsvOptions.ts";
-import {useState} from "react";
+import React, {useState} from "react";
 import {CsvResponse, IRow, IRowWithId} from "../models/CsvResponse.ts";
 import PromptForm from "./PromptForm.tsx";
 import DataGridTable from "./table/DataGridTable.tsx";
@@ -25,6 +25,7 @@ interface IFormInput {
     search_query_template: string;
     companies: string;
     sites: string;
+    excluded_sites_lists: string;
     positions: string;
     max_lead_count: number;
     max_sites_count: number;
@@ -53,6 +54,7 @@ const CreateCsvForm = () => {
             search_query_template: "{company} AND {positions} AND {site}",
             companies: "Мосстрой",
             sites: "sbis.ru",
+            excluded_sites_lists: "companies_profiles, vacations",
             positions: "директор\nруководитель\nначальник\nглава",
             max_lead_count: 2,
             max_sites_count: 50,
@@ -94,31 +96,48 @@ const CreateCsvForm = () => {
     };
 
 
-    const onTestSearchQuery: SubmitHandler<IFormInput> = async (payload_data): Promise<boolean> => {
-        setLoading(true)
+    const onTestSearchQuery: SubmitHandler<IFormInput> = async (payload_data: IFormInput): Promise<boolean> => {
+        setLoading(true);
+
+        let excluded_sites: string[] = []
+        if (payload_data.excluded_sites_lists != "") {
+            excluded_sites = excluded_sites.concat(payload_data.excluded_sites_lists.split(", "))
+        }
+
+
+        try {
         const resp = await fetch(`${import.meta.env.VITE_API_BASE_URL}/search_query`, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json;charset=utf-8"
             },
-            body: JSON.stringify(payload_data.search_query_template)
-        })
+            body: JSON.stringify({
+                    search_query_template: payload_data.search_query_template,
+        excluded_sites_lists: excluded_sites
+                })
+            });
 
-        const resp_data = await resp.json() as SearchQueryResponse
+        const resp_data = await resp.json() as SearchQueryResponse;
 
         if (resp_data.type === "error") {
-            const error_message = resp_data.data as string
-            setCompiledSearchQueries([])
-            setError("search_query_template", {type: "validation_error", message: error_message})
-            setLoading(false)
-            return false
+            const error_message = resp_data.data as string;
+            setCompiledSearchQueries([]);
+            setError("search_query_template", {type: "validation_error", message: error_message});
+
+            return false;
         } else if (resp_data.type === "success") {
-            const compiled_queries = resp_data.data as string[]
+            const compiled_queries = resp_data.data as string[];
             setCompiledSearchQueries(compiled_queries)
-            setLoading(false)
-            return true
+            ;
+            return true;
         }
-    }
+    }catch (error) {
+            console.error("Ошибка при тестировании запроса:", error);
+            return false;
+        } finally {
+            setLoading(false);
+        }
+    };
 
 
     const onSubmitWs: SubmitHandler<IFormInput> = async (payload_data) => {
@@ -134,6 +153,7 @@ const CreateCsvForm = () => {
         const payload: CreateCsvOptions = {
             companies: payload_data.companies.split("\n"),
             sites: mode === "researcher" ? [] : payload_data.sites.split("\n"),
+            excluded_sites_lists: payload_data.excluded_sites_lists.split(", "),
             positions: payload_data.positions.split("\n"),
             search_query_template: mode === "researcher"
                 ? "{company} AND {positions}"
@@ -154,7 +174,8 @@ const CreateCsvForm = () => {
 
         logMessage("Подключение к серверу...");
 
-        csvWs.onopen = () => {
+        console.log('gg');
+        console.log(payload);csvWs.onopen = () => {
             logMessage("Отправка данных...");
             csvWs.send(JSON.stringify(payload));
         };
@@ -253,6 +274,18 @@ const CreateCsvForm = () => {
                                     placeholder="{company} AND {positions}"
                                 />
                             }
+                        />
+                        <Controller
+                            name="excluded_sites_lists"
+                            control={control}
+                            render={({field}) => (
+                                <TextField
+                                    {...field}
+                                    label="Исключить сайты"
+                                    type="text"
+                                    placeholder="companies_profiles, vacations"
+                                />
+                            )}
                         />
                         <Box>
                             <LoadingButton
