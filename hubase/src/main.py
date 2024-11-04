@@ -80,7 +80,9 @@ def _main(csv_options: CsvOptions, logger: Logger) -> t.Iterator[CSVRow]:
         # ).iter()
 
 
-def get_names_and_positions_csv(csv_options: CsvOptions, logger: Logger) -> str:
+def get_names_and_positions_csv(
+    csv_options: CsvOptions, logger: Logger
+) -> str:
     headers = [
         "name",
         "position",
@@ -110,7 +112,9 @@ def get_names_and_positions_csv_with_progress(
     with HubaseCsv(headers=headers, settings=settings) as csv_:
         yield csv_.download_url
 
-        for lead_count, person in enumerate(_main(csv_options, logger), start=1):
+        for lead_count, person in enumerate(
+            _main(csv_options, logger), start=1
+        ):
             csv_.persist(person)
             yield person
 

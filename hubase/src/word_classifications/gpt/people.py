@@ -84,5 +84,7 @@ class GPTPeople(HubaseIterator):
             people = response.choices[0].message.parsed.people
             self.__logger.info("Получен ответ от GPT.")
             self.__logger.info(f"Найдено людей: {len(people)}")
-            self.__logger.info(f"Использовано токенов: {response.usage.total_tokens}")
+            self.__logger.info(
+                f"Использовано токенов: {response.usage.total_tokens}"
+            )
             return response.choices[0].message.parsed.people

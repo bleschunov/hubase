@@ -8,7 +8,9 @@ from settings import Settings
 
 class HubaseCsv:
     def __init__(self, headers: list[str], settings: Settings):
-        self.__csv_name = f"result-{dt.datetime.now().strftime('%m%d%Y-%H%M%S')}.csv"
+        self.__csv_name = (
+            f"result-{dt.datetime.now().strftime('%m%d%Y-%H%M%S')}.csv"
+        )
         self.__fd: t.IO | None = None
         self.__csv: csv.DictWriter | None = None
         self.__headers = headers

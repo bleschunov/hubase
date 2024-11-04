@@ -8,7 +8,12 @@ from word_classifications.ner.client import NerClient, NerResponse
 
 class NerPeople(HubaseIterator):
     def __init__(
-        self, text: str, client: NerClient, logger: Logger, *, batch_size: int = 512
+        self,
+        text: str,
+        client: NerClient,
+        logger: Logger,
+        *,
+        batch_size: int = 512,
     ) -> None:
         self.__text = text
         self.__client = client

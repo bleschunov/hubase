@@ -1,10 +1,9 @@
 import unittest
-from unittest.mock import patch, PropertyMock
+from unittest.mock import PropertyMock, patch
 
 from hubase_md import HubaseMd, JinaException
 from main import _main
 from search_page import SearchPage
-
 
 jina_exception = JinaException("testexcmsg")
 
@@ -22,7 +21,9 @@ class TestIntegration(unittest.TestCase):
             },
         ),
     )
-    @patch.object(HubaseMd, "md", new_callable=PropertyMock, side_effect=jina_exception)
+    @patch.object(
+        HubaseMd, "md", new_callable=PropertyMock, side_effect=jina_exception
+    )
     def test_yield_error_row_on_jina_exception(self, *_):
         row = next(
             _main(

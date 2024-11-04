@@ -19,7 +19,8 @@ class LLMClientQAMistral(LLMClientQA):
         self.__logger.info("Делаем запрос в Mistral")
 
         response = self.__client.chat(
-            model=self.__model, messages=[ChatMessage(role="user", content=prompt)]
+            model=self.__model,
+            messages=[ChatMessage(role="user", content=prompt)],
         )
 
         self.__logger.info(f"Использовано токенов: {response.usage}")

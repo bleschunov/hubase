@@ -5,7 +5,7 @@ import typing as t
 from pathlib import Path
 
 from asyncer import asyncify
-from fastapi import FastAPI, HTTPException, WebSocket, Body
+from fastapi import Body, FastAPI, HTTPException, WebSocket
 from mistralai.exceptions import MistralAPIException
 from pydantic import BaseModel
 from starlette.middleware.cors import CORSMiddleware
@@ -13,15 +13,18 @@ from starlette.staticfiles import StaticFiles
 from starlette.websockets import WebSocketDisconnect
 
 from api.model import (
-    CsvResponse,
-    CsvOptions,
-    CsvRow,
     CsvDownloadLink,
+    CsvOptions,
+    CsvResponse,
+    CsvRow,
     Prompt,
     UpdatePrompt,
 )
 from exceptions import HuggingFaceException
-from main import get_names_and_positions_csv, get_names_and_positions_csv_with_progress
+from main import (
+    get_names_and_positions_csv,
+    get_names_and_positions_csv_with_progress,
+)
 from model import CSVRow
 from prompt.fs_prompt import FileSystemPrompt
 from search_queries import SearchQueries
@@ -159,9 +162,9 @@ def get_prompt(name: str) -> Prompt:
 
 @app.patch("/api/v1/prompt")
 def update_prompt(update_prompt: UpdatePrompt) -> Prompt:
-    new_prompt = FileSystemPrompt(Path(f"../prompts/{update_prompt.name}.txt")).update(
-        update_prompt.prompt_text
-    )
+    new_prompt = FileSystemPrompt(
+        Path(f"../prompts/{update_prompt.name}.txt")
+    ).update(update_prompt.prompt_text)
     return Prompt(prompt_text=new_prompt)
 
 
@@ -197,5 +200,9 @@ def compile_search_queries(
         return SearchQueryResponse(type="success", data=compiled)
 
 
-app.mount("/static/results", StaticFiles(directory="../results"), name="results")
-app.mount("/static", StaticFiles(directory="../front", html=True), name="front")
+app.mount(
+    "/static/results", StaticFiles(directory="../results"), name="results"
+)
+app.mount(
+    "/static", StaticFiles(directory="../front", html=True), name="front"
+)

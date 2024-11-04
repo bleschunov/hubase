@@ -1,5 +1,6 @@
 import copy
 import logging
+
 import requests
 
 from exceptions import HuggingFaceException
@@ -10,7 +11,9 @@ from settings import settings
 class LLMClientQARoberta(LLMClientQA):
     def __init__(self):
         self.__api_url = "https://api-inference.huggingface.co/models/AlexKay/xlm-roberta-large-qa-multilingual-finedtuned-ru"
-        self.__headers = {"Authorization": f"Bearer {settings.hugging_face_token}"}
+        self.__headers = {
+            "Authorization": f"Bearer {settings.hugging_face_token}"
+        }
         self.__payload = {
             "inputs": {"context": self._context},
             "options": {"wait_for_model": True},

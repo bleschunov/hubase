@@ -107,12 +107,16 @@ class TestSearchQueries(unittest.TestCase):
                 expected_queries=expected_queries,
             ):
                 compiled_queries = list(
-                    SearchQueries(template, company, positions, sites).compiled()
+                    SearchQueries(
+                        template, company, positions, sites
+                    ).compiled()
                 )
                 self.assertListEqual(compiled_queries, expected_queries)
 
     def test_raise_exceptions_on_invalid_template(self):
-        for invalid_template in self.__raise_exceptions_on_invalid_template_params:
+        for (
+            invalid_template
+        ) in self.__raise_exceptions_on_invalid_template_params:
             with self.subTest(template=invalid_template):
                 with self.assertRaises(ValueError):
                     SearchQueries(

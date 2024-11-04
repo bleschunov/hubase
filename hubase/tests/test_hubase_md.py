@@ -1,5 +1,5 @@
 import unittest
-from unittest.mock import patch, MagicMock, PropertyMock
+from unittest.mock import MagicMock, PropertyMock, patch
 
 import requests
 
@@ -34,7 +34,10 @@ class TestHubaseMd(unittest.TestCase):
         self.assertEqual(jina_success_md, md)
 
     @patch.object(
-        requests.Response, "text", new_callable=PropertyMock, return_value=jina_error
+        requests.Response,
+        "text",
+        new_callable=PropertyMock,
+        return_value=jina_error,
     )
     @patch.object(requests, "get", return_value=requests.Response())
     def test_jina_raises_on_http_error(self, *_) -> None:
