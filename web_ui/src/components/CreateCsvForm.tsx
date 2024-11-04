@@ -51,7 +51,7 @@ const CreateCsvForm = () => {
         defaultValues: {
             search_query_template: "{company} AND {positions} AND {site}",
             companies: "Мосстрой",
-            sites: "sbis.ru",
+            sites: "rbc.ru",
             positions: "директор\nруководитель\nначальник\nглава",
             max_lead_count: 2,
             openai_api_key: localStorage.getItem("openai_api_key") || "",
