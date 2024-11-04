@@ -6,6 +6,7 @@ interface IRow {
   original_url: string;
   source: string;
   download_link: string;
+  site: string;
 }
 
 interface IRowWithId extends IRow {

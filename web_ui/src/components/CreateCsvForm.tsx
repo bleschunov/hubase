@@ -1,10 +1,8 @@
 import {
     Box,
     Button,
-    Checkbox,
-    Divider,
-    FormControl,
-    FormControlLabel,
+    Checkbox,Divider,
+    FormControl,FormControlLabel,
     InputLabel,
     Link,
     MenuItem,
@@ -27,11 +25,13 @@ interface IFormInput {
     search_query_template: string;
     companies: string;
     sites: string;
+    excluded_sites_lists: string;
     positions: string;
     max_lead_count: number;
+    max_sites_count: number;
     openai_api_key: string;
     openai_api_base: string;
-    excluded_sites_lists: string;
+    mode: Mode;
 }
 
 interface SearchQueryResponse {
@@ -40,6 +40,7 @@ interface SearchQueryResponse {
 }
 
 type ViewType = "simple" | "dataGrid"
+type Mode = "parser" | "researcher"
 
 const CreateCsvForm = () => {
     const {
@@ -47,16 +48,19 @@ const CreateCsvForm = () => {
         handleSubmit,
         formState: {errors},
         setError,
+        setValue,
     } = useForm<IFormInput>({
         defaultValues: {
             search_query_template: "{company} AND {positions} AND {site}",
             companies: "Мосстрой",
-            sites: "rbc.ru",
+            sites: "sbis.ru",
+            excluded_sites_lists: "companies_profiles, vacations",
             positions: "директор\nруководитель\nначальник\nглава",
             max_lead_count: 2,
+            max_sites_count: 50,
             openai_api_key: localStorage.getItem("openai_api_key") || "",
             openai_api_base: localStorage.getItem("openai_api_base") || "",
-            excluded_sites_lists: "companies_profiles, vacations",
+            mode: "parser",
         },
     });
 
@@ -68,6 +72,7 @@ const CreateCsvForm = () => {
     const [companyPromptContext, setCompanyPromptContext] = useState<string>("")
     const [positionPromptContext, setPositionPromptContext] = useState<string>("")
     const [viewType, setViewType] = useState<ViewType>("dataGrid")
+    const [mode, setMode] = useState<Mode>("parser")
 
     const logMessage = (message: string) => {
         setLogMessages((prev) => [message, ...prev]);
@@ -77,7 +82,21 @@ const CreateCsvForm = () => {
         setViewType(event.target.value as ViewType);
     }
 
-    const onTestSearchQuery: SubmitHandler<IFormInput> = async (payload_data: IFormInput): boolean => {
+    const handleChangeMode = (event: SelectChangeEvent) => {
+        const newMode = event.target.value as Mode;
+        setValue("mode", newMode);
+        setMode(newMode);
+        const newTemplate =
+            newMode === "researcher"
+                ? "{company} AND {positions}"
+                : "{company} AND {positions} AND {site}";
+        setValue("search_query_template", newTemplate);
+
+        logMessage(`Изменена стратегия на: ${event.target.value}`);
+    };
+
+
+    const onTestSearchQuery: SubmitHandler<IFormInput> = async (payload_data: IFormInput): Promise<boolean> => {
         setLoading(true);
 
         let excluded_sites: string[] = []
@@ -87,30 +106,32 @@ const CreateCsvForm = () => {
 
 
         try {
-            const resp = await fetch(`${import.meta.env.VITE_API_BASE_URL}/search_query`, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json;charset=utf-8"
-                },
-                body: JSON.stringify({
+        const resp = await fetch(`${import.meta.env.VITE_API_BASE_URL}/search_query`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json;charset=utf-8"
+            },
+            body: JSON.stringify({
                     search_query_template: payload_data.search_query_template,
-                    excluded_sites_lists: excluded_sites
+        excluded_sites_lists: excluded_sites
                 })
             });
 
-            const resp_data = await resp.json() as SearchQueryResponse;
+        const resp_data = await resp.json() as SearchQueryResponse;
 
-            if (resp_data.type === "error") {
-                const error_message = resp_data.data as string;
-                setCompiledSearchQueries([]);
-                setError("search_query_template", {type: "validation_error", message: error_message});
-                return false;
-            } else if (resp_data.type === "success") {
-                const compiled_queries = resp_data.data as string[];
-                setCompiledSearchQueries(compiled_queries);
-                return true;
-            }
-        } catch (error) {
+        if (resp_data.type === "error") {
+            const error_message = resp_data.data as string;
+            setCompiledSearchQueries([]);
+            setError("search_query_template", {type: "validation_error", message: error_message});
+
+            return false;
+        } else if (resp_data.type === "success") {
+            const compiled_queries = resp_data.data as string[];
+            setCompiledSearchQueries(compiled_queries)
+            ;
+            return true;
+        }
+    }catch (error) {
             console.error("Ошибка при тестировании запроса:", error);
             return false;
         } finally {
@@ -131,16 +152,20 @@ const CreateCsvForm = () => {
 
         const payload: CreateCsvOptions = {
             companies: payload_data.companies.split("\n"),
-            sites: payload_data.sites.split("\n"),
+            sites: mode === "researcher" ? [] : payload_data.sites.split("\n"),
+            excluded_sites_lists: payload_data.excluded_sites_lists.split(", "),
             positions: payload_data.positions.split("\n"),
-            search_query_template: payload_data.search_query_template,
+            search_query_template: mode === "researcher"
+                ? "{company} AND {positions}"
+                : "{company} AND {positions} AND {site}",
             access_token: import.meta.env.VITE_ACCESS_TOKEN,
-            company_prompt: companyPromptContext,
-            position_prompt: positionPromptContext,
+            company_prompt: mode === "parser" ? companyPromptContext : "",
+            position_prompt: mode === "parser" ? positionPromptContext : "",
             max_lead_count: payload_data.max_lead_count,
+            max_sites_count: payload_data.max_sites_count,
             openai_api_key: payload_data.openai_api_key,
             openai_api_base: payload_data.openai_api_base,
-            excluded_sites_lists: payload_data.excluded_sites_lists.split(", "),
+            mode: payload_data.mode
         };
 
         const csvWs = new WebSocket(`${import.meta.env.VITE_API_BASE_URL_WS}/csv/progress`);
@@ -150,33 +175,31 @@ const CreateCsvForm = () => {
         logMessage("Подключение к серверу...");
 
         console.log('gg');
-        console.log(payload);
-        csvWs.onopen = () => {
+        console.log(payload);csvWs.onopen = () => {
             logMessage("Отправка данных...");
             csvWs.send(JSON.stringify(payload));
         };
 
         csvWs.onmessage = (event) => {
-            let row: CsvResponse
+            let row: CsvResponse;
             try {
                 row = JSON.parse(event.data);
             } catch (error) {
                 logMessage(`Ошибка при обработке данных: ${error}`);
-                return
+                return;
             }
 
             if (row.type === "csv_row") {
-                const csv_row = row.data as IRow
-                const csv_row_with_id = {id: uuidv4(), ...csv_row}
+                const csv_row = row.data as IRow;
+                const csv_row_with_id = {id: uuidv4(), ...csv_row};
 
                 setCsvDownloadLink(csv_row.download_link);
                 setRows((prev) => [...prev, csv_row_with_id]);
             } else if (row.type === "log") {
-                const log_entry = row.data as string
+                const log_entry = row.data as string;
                 logMessage(log_entry);
             }
         };
-
         csvWs.onerror = () => {
             logMessage("Ошибка соединения с сервером.");
         };
@@ -193,8 +216,22 @@ const CreateCsvForm = () => {
         setCsvDownloadLink("")
     }
 
+
     return (
         <Stack spacing={3}>
+            <FormControl>
+                <InputLabel id="modeLabel">Стратегия</InputLabel>
+                <Select
+                    labelId="modeLabel"
+                    id="mode"
+                    value={mode}
+                    label="Мод"
+                    onChange={handleChangeMode}
+                >
+                    <MenuItem value="parser">Парсер</MenuItem>
+                    <MenuItem value="researcher">Ресерчер</MenuItem>
+                </Select>
+            </FormControl>
             <PromptForm
                 setCompanyPromptContext={setCompanyPromptContext}
                 setPositionPromptContext={setPositionPromptContext}
@@ -234,7 +271,7 @@ const CreateCsvForm = () => {
                                     error={Object.entries(errors).length > 0}
                                     helperText={Object.entries(errors).length > 0 && errors?.search_query_template.message}
                                     label="Поисковой запрос"
-                                    placeholder="{company} AND {positions} AND {site}"
+                                    placeholder="{company} AND {positions}"
                                 />
                             }
                         />
@@ -274,19 +311,21 @@ const CreateCsvForm = () => {
                             />
                         )}
                     />
-                    <Controller
-                        name="sites"
-                        control={control}
-                        render={({field}) => (
-                            <TextField
-                                {...field}
-                                label="Сайты для поиска"
-                                placeholder="cfo-russia.ru"
-                                multiline
-                                rows={4}
-                            />
-                        )}
-                    />
+                    {mode === "parser" && (
+                        <Controller
+                            name="sites"
+                            control={control}
+                            render={({field}) => (
+                                <TextField
+                                    {...field}
+                                    label="Сайты для поиска"
+                                    placeholder="cfo-russia.ru"
+                                    multiline
+                                    rows={4}
+                                />
+                            )}
+                        />
+                    )}
                     <Controller
                         name="positions"
                         control={control}
@@ -300,19 +339,40 @@ const CreateCsvForm = () => {
                             />
                         )}
                     />
-                    <Box>
-                        <Controller
-                            name="max_lead_count"
-                            control={control}
-                            render={({field}) => (
-                                <TextField
-                                    {...field}
-                                    label="Сколько лидов ищём"
-                                    type="number"
-                                />
-                            )}
-                        />
-                    </Box>
+                    {mode === "parser" && (
+                        <Box>
+                            <Controller
+                                name="max_lead_count"
+                                control={control}
+                                render={({field}) => (
+                                    <TextField
+                                        {...field}
+                                        label="Сколько лидов ищем"
+                                        type="number"
+                                        InputProps={{inputProps: {min: 1}}}
+                                    />
+                                )}
+                            />
+                        </Box>
+                    )}
+
+                    {mode === "researcher" && (
+                        <Box>
+                            <Controller
+                                name="max_sites_count"
+                                control={control}
+                                render={({field}) => (
+                                    <TextField
+                                        {...field}
+                                        label="Сколько сайтов ищем"
+                                        type="number"
+                                        InputProps={{inputProps: {min: 1}}}
+                                    />
+                                )}
+                            />
+                        </Box>
+                    )}
+
                     <Box>
                         <LoadingButton
                             onClick={handleSubmit(onSubmitWs)}

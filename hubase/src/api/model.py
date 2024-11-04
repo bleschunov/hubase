@@ -6,15 +6,17 @@ from pydantic import BaseModel, SecretStr
 class CsvOptions(BaseModel):
     companies: list[str]
     sites: list[str]
+    excluded_sites_lists: list[str]
     positions: list[str]
     search_query_template: str
     access_token: SecretStr
     company_prompt: str
     position_prompt: str
     max_lead_count: int
+    max_sites_count: int
     openai_api_key: SecretStr
     openai_api_base: str
-    excluded_sites_lists: list[str]
+    mode: str
 
 
 class CsvDownloadLink(BaseModel):
