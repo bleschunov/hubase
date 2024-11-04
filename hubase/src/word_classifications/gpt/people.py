@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from logging import Logger
 
 from openai import OpenAI
-from pydantic import BaseModel
+from pydantic import BaseModel, SecretStr
 
 from word_classifications.abc_ import HubaseIterator
 
@@ -29,13 +29,11 @@ class GPTPeople(HubaseIterator):
         self,
         text: str,
         prompt_template: str,
-        api_key: str,
+        api_key: SecretStr,
         logger: Logger,
         *,
         batch_size: int = 2000,
-        openai_api_base: str | None = None,
-        mode: str,
-        site_name: str,
+        openai_api_base: SecretStr | None = None,
     ) -> None:
         if "{input}" not in prompt_template:
             raise ValueError("Переменная {input} должна быть в промпте.")
@@ -43,14 +41,12 @@ class GPTPeople(HubaseIterator):
         self.__text = text
         self.__prompt_template = prompt_template
         self.__api_key = api_key
-        self.__client = OpenAI(api_key=self.__api_key)
+        self.__client = OpenAI(api_key=self.__api_key.get_secret_value())
         self.__logger = logger
         self.__batch_size = batch_size
-        self.__mode = mode
-        self.__site_name = site_name
 
         if openai_api_base is not None:
-            self.__client.base_url = openai_api_base
+            self.__client.base_url = openai_api_base.get_secret_value()
 
     def iter(self) -> t.Iterator[GPTResponseWithSource]:
         for batch in self.__text_batches():
@@ -61,12 +57,6 @@ class GPTPeople(HubaseIterator):
                     person=person,
                     source=batch,
                 )
-                if self.__mode == "researcher":
-                    found_leads = True
-                    break
-
-            if found_leads and self.__mode == "researcher":
-                break
 
     def __text_batches(self) -> t.Iterator[str]:
         for i in range(0, len(self.__text), self.__batch_size):
