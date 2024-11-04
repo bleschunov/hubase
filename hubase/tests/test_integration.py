@@ -1,5 +1,5 @@
 import unittest
-from unittest.mock import MagicMock, patch, PropertyMock
+from unittest.mock import patch, PropertyMock
 
 from hubase_md import HubaseMd, JinaException
 from main import _main
@@ -13,11 +13,24 @@ class TestIntegration(unittest.TestCase):
     @patch.object(
         SearchPage,
         "__next__",
-        return_value=("testurl/sub", {"company": "testcompany", "site": "testurl", "positions": ["testpositions"]})
+        return_value=(
+            "testurl/sub",
+            {
+                "company": "testcompany",
+                "site": "testurl",
+                "positions": ["testpositions"],
+            },
+        ),
     )
     @patch.object(HubaseMd, "md", new_callable=PropertyMock, side_effect=jina_exception)
     def test_yield_error_row_on_jina_exception(self, *_):
-        row = next(_main(companies=["testcompany"], sites=["testurl"], positions=["testpositions"]))
+        row = next(
+            _main(
+                companies=["testcompany"],
+                sites=["testurl"],
+                positions=["testpositions"],
+            )
+        )
         self.assertDictEqual(
             {
                 "name": jina_exception,
@@ -27,5 +40,5 @@ class TestIntegration(unittest.TestCase):
                 "original_url": "testurl/sub",
                 "source": None,
             },
-            row
+            row,
         )

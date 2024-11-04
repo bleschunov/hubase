@@ -15,8 +15,10 @@ class HubaseCsv:
         self.__settings = settings
 
     def __enter__(self) -> "HubaseCsv":
-        self.__fd = open(f"../results/{self.__csv_name}", mode='a+')
-        self.__csv = csv.DictWriter(self.__fd, fieldnames=self.__headers, extrasaction="ignore")
+        self.__fd = open(f"../results/{self.__csv_name}", mode="a+")
+        self.__csv = csv.DictWriter(
+            self.__fd, fieldnames=self.__headers, extrasaction="ignore"
+        )
         self.__csv.writeheader()
         return self
 

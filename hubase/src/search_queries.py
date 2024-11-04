@@ -16,8 +16,14 @@ class SearchQuery:
 class SearchQueries:
     __allowed_variables = {"{company}", "{site}", "{positions}", "{position}"}
 
-    def __init__(self, template: str, companies: list[str], positions: list[str], sites: list[str],
-                 excluded_sites_lists: list[str]) -> None:
+    def __init__(
+        self,
+        template: str,
+        companies: list[str],
+        positions: list[str],
+        sites: list[str],
+        excluded_sites_lists: list[str],
+    ) -> None:
         self.__template = template
         self.__companies = companies
         self.__positions = positions
@@ -50,15 +56,19 @@ class SearchQueries:
             logging.info(f"Поиск для компании: {company}")
             for site in self.__sites:
                 for position in positions_:
-                    exclusion_query = " ".join([f"-site:{site}" for site in exclusion_sites])
+                    exclusion_query = " ".join(
+                        [f"-site:{site}" for site in exclusion_sites]
+                    )
                     search_params = {
                         "company": company,
-                        "site": f'site:{site} {exclusion_query}' if site != "" else exclusion_query,
-                        self.__position_variable: position
+                        "site": f"site:{site} {exclusion_query}"
+                        if site != ""
+                        else exclusion_query,
+                        self.__position_variable: position,
                     }
                     yield SearchQuery(
                         query=self.__template.format(**search_params),
-                        search_params=search_params
+                        search_params=search_params,
                     )
 
     def __validate_template(self) -> None:

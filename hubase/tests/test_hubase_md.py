@@ -1,5 +1,5 @@
 import unittest
-from unittest.mock import patch, MagicMock, create_autospec, PropertyMock
+from unittest.mock import patch, MagicMock, PropertyMock
 
 import requests
 
@@ -21,15 +21,22 @@ jina_error = get_jina_error()
 
 
 class TestHubaseMd(unittest.TestCase):
-    @patch.object(requests.Response, "text", new_callable=PropertyMock, return_value=jina_success_md)
+    @patch.object(
+        requests.Response,
+        "text",
+        new_callable=PropertyMock,
+        return_value=jina_success_md,
+    )
     @patch.object(requests, "get", return_value=requests.Response())
     def test_jina_return_md(self, *_) -> None:
         hubase_md = HubaseMd(url=MagicMock())
         md = hubase_md.md
         self.assertEqual(jina_success_md, md)
 
-    @patch.object(requests.Response, "text", new_callable=PropertyMock, return_value=jina_error)
+    @patch.object(
+        requests.Response, "text", new_callable=PropertyMock, return_value=jina_error
+    )
     @patch.object(requests, "get", return_value=requests.Response())
-    def test_jina_return_md(self, *_) -> None:
+    def test_jina_raises_on_http_error(self, *_) -> None:
         with self.assertRaises(JinaException):
             _ = HubaseMd(url=MagicMock()).md

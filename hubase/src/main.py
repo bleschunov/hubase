@@ -12,10 +12,7 @@ from word_classifications.gpt.csv_rows import GPTCSVRows
 from word_classifications.gpt.people import GPTPeople
 
 
-def _main(
-    csv_options: CsvOptions,
-    logger: Logger
-) -> t.Iterator[CSVRow]:
+def _main(csv_options: CsvOptions, logger: Logger) -> t.Iterator[CSVRow]:
     search_queries = SearchQueries(
         csv_options.search_query_template,
         csv_options.companies,
@@ -24,7 +21,9 @@ def _main(
         csv_options.excluded_sites_lists,
     )
 
-    for url, searching_params in SearchPage(search_queries, logger, url_limit=5).found():
+    for url, searching_params in SearchPage(
+        search_queries, logger, url_limit=5
+    ).found():
         try:
             md = HubaseMd(url, logger).md
 
@@ -47,7 +46,11 @@ def _main(
         else:
             openai_api_key = settings.openai_api_key
 
-        openai_api_base = csv_options.openai_api_base if csv_options.openai_api_base != "" else settings.openai_api_base
+        openai_api_base = (
+            csv_options.openai_api_base
+            if csv_options.openai_api_base != ""
+            else settings.openai_api_base
+        )
 
         yield from GPTCSVRows(
             people=GPTPeople(
@@ -77,11 +80,15 @@ def _main(
         # ).iter()
 
 
-def get_names_and_positions_csv(
-    csv_options: CsvOptions,
-    logger: Logger
-) -> str:
-    headers = ["name", "position", "searched_company", "inferenced_company", "original_url", "source"]
+def get_names_and_positions_csv(csv_options: CsvOptions, logger: Logger) -> str:
+    headers = [
+        "name",
+        "position",
+        "searched_company",
+        "inferenced_company",
+        "original_url",
+        "source",
+    ]
     with HubaseCsv(headers=headers, settings=settings) as csv_:
         for person in _main(csv_options, logger):
             csv_.persist(person)
@@ -89,10 +96,16 @@ def get_names_and_positions_csv(
 
 
 def get_names_and_positions_csv_with_progress(
-    csv_options: CsvOptions,
-    logger: Logger
+    csv_options: CsvOptions, logger: Logger
 ) -> t.Iterator[CSVRow | str]:
-    headers = ["name", "position", "searched_company", "inferenced_company", "original_url", "source"]
+    headers = [
+        "name",
+        "position",
+        "searched_company",
+        "inferenced_company",
+        "original_url",
+        "source",
+    ]
 
     with HubaseCsv(headers=headers, settings=settings) as csv_:
         yield csv_.download_url

@@ -2,8 +2,10 @@ import json
 import logging
 import requests
 
+
 class JinaException(Exception):
     pass
+
 
 class HubaseMd:
     __jina_query = "https://r.jina.ai/{url}"
@@ -35,5 +37,3 @@ class HubaseMd:
         else:
             self.__logger.info("Ошибка Jina.")
             raise JinaException(error)
-
-

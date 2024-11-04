@@ -1,5 +1,6 @@
 import abc
 
+
 class Prompt(abc.ABC):
     @abc.abstractmethod
     def get(self) -> str:
