@@ -13,7 +13,13 @@ class SearchQuery:
 
 
 class SearchQueries:
-    __allowed_variables = {"{company}", "{site}", "{positions}", "{position}"}
+    __allowed_variables = {
+        "{company}",
+        "{site}",
+        "{positions}",
+        "{position}",
+        "{excluded_sites}",
+    }
 
     def __init__(
         self,
@@ -39,30 +45,27 @@ class SearchQueries:
         else:
             self.__position_variable = "position"
 
-    def __get_exclusion_sites(self) -> list[str]:
+    def __get_excluded_sites_subquery(self) -> str:
         excluded = []
 
         for name in self.__excluded_sites_lists:
-            with open(f"../sites/{name}.txt", "r") as file:
-                excluded.extend(file.readlines())
+            with open(f"../sites/{name}.txt", "r") as fd:
+                for site in fd.readlines():
+                    excluded.append(f"-site:{site.strip()}")
 
-        return excluded
+        return " ".join(excluded)
 
     def compiled(self) -> t.Iterator[SearchQuery]:
-        exclusion_sites = self.__get_exclusion_sites()
+        excluded_sites_subquery = self.__get_excluded_sites_subquery()
         positions_ = self.__build_positions_list()
         for company in self.__companies:
             logging.info(f"Поиск для компании: {company}")
             for site in self.__sites:
                 for position in positions_:
-                    exclusion_query = " ".join(
-                        [f"-site:{site}" for site in exclusion_sites]
-                    )
                     search_params = {
                         "company": company,
-                        "site": f"site:{site} {exclusion_query}"
-                        if site != ""
-                        else exclusion_query,
+                        "site": f"site:{site}",
+                        "excluded_sites": excluded_sites_subquery,
                         self.__position_variable: position,
                     }
                     yield SearchQuery(

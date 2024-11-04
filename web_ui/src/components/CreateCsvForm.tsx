@@ -48,7 +48,8 @@ const CreateCsvForm = () => {
         handleSubmit,
         formState: {errors},
         setError,
-        setValue,
+        getValues,
+        setValue
     } = useForm<IFormInput>({
         defaultValues: {
             search_query_template: "{company} AND {positions} AND {site}",
@@ -72,7 +73,6 @@ const CreateCsvForm = () => {
     const [companyPromptContext, setCompanyPromptContext] = useState<string>("")
     const [positionPromptContext, setPositionPromptContext] = useState<string>("")
     const [viewType, setViewType] = useState<ViewType>("dataGrid")
-    const [mode, setMode] = useState<Mode>("parser")
 
     const logMessage = (message: string) => {
         setLogMessages((prev) => [message, ...prev]);
@@ -83,15 +83,7 @@ const CreateCsvForm = () => {
     }
 
     const handleChangeMode = (event: SelectChangeEvent) => {
-        const newMode = event.target.value as Mode;
-        setValue("mode", newMode);
-        setMode(newMode);
-        const newTemplate =
-            newMode === "researcher"
-                ? "{company} AND {positions}"
-                : "{company} AND {positions} AND {site}";
-        setValue("search_query_template", newTemplate);
-
+        setValue("mode", event.target.value as Mode)
         logMessage(`Изменена стратегия на: ${event.target.value}`);
     };
 
@@ -152,15 +144,13 @@ const CreateCsvForm = () => {
 
         const payload: CreateCsvOptions = {
             companies: payload_data.companies.split("\n"),
-            sites: mode === "researcher" ? [] : payload_data.sites.split("\n"),
+            sites: payload_data.mode === "researcher" ? [] : payload_data.sites.split("\n"),
             excluded_sites_lists: payload_data.excluded_sites_lists.split(", "),
             positions: payload_data.positions.split("\n"),
-            search_query_template: mode === "researcher"
-                ? "{company} AND {positions}"
-                : "{company} AND {positions} AND {site}",
+            search_query_template: payload_data.search_query_template,
             access_token: import.meta.env.VITE_ACCESS_TOKEN,
-            company_prompt: mode === "parser" ? companyPromptContext : "",
-            position_prompt: mode === "parser" ? positionPromptContext : "",
+            company_prompt: companyPromptContext,
+            position_prompt: positionPromptContext,
             max_lead_count: payload_data.max_lead_count,
             max_sites_count: payload_data.max_sites_count,
             openai_api_key: payload_data.openai_api_key,
@@ -219,19 +209,6 @@ const CreateCsvForm = () => {
 
     return (
         <Stack spacing={3}>
-            <FormControl>
-                <InputLabel id="modeLabel">Стратегия</InputLabel>
-                <Select
-                    labelId="modeLabel"
-                    id="mode"
-                    value={mode}
-                    label="Мод"
-                    onChange={handleChangeMode}
-                >
-                    <MenuItem value="parser">Парсер</MenuItem>
-                    <MenuItem value="researcher">Ресерчер</MenuItem>
-                </Select>
-            </FormControl>
             <PromptForm
                 setCompanyPromptContext={setCompanyPromptContext}
                 setPositionPromptContext={setPositionPromptContext}
@@ -239,6 +216,23 @@ const CreateCsvForm = () => {
             <Divider/>
             <form>
                 <Stack spacing={2}>
+                    <Controller
+                        name="mode"
+                        control={control}
+                        render={({field}) => (
+                            <>
+                                <Select
+                                    {...field}
+                                    onChange={handleChangeMode}
+                                >
+                                    <MenuItem value="parser">Парсер</MenuItem>
+                                    <MenuItem value="researcher">Ресерчер</MenuItem>
+                                </Select>
+                            </>
+                        )}
+                    >
+
+                    </Controller>
                     <Controller
                         name="openai_api_key"
                         control={control}
@@ -311,7 +305,7 @@ const CreateCsvForm = () => {
                             />
                         )}
                     />
-                    {mode === "parser" && (
+                    {getValues().mode === "parser" && (
                         <Controller
                             name="sites"
                             control={control}
@@ -339,7 +333,7 @@ const CreateCsvForm = () => {
                             />
                         )}
                     />
-                    {mode === "parser" && (
+                    {getValues().mode === "parser" && (
                         <Box>
                             <Controller
                                 name="max_lead_count"
@@ -356,7 +350,7 @@ const CreateCsvForm = () => {
                         </Box>
                     )}
 
-                    {mode === "researcher" && (
+                    {getValues().mode === "researcher" && (
                         <Box>
                             <Controller
                                 name="max_sites_count"
