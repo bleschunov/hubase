@@ -31,7 +31,7 @@ interface IFormInput {
     max_lead_count: number;
     openai_api_key: string;
     openai_api_base: string;
-    exclude_sites_list_name: boolean;
+    excluded_sites_lists: string;
 }
 
 interface SearchQueryResponse {
@@ -56,7 +56,7 @@ const CreateCsvForm = () => {
             max_lead_count: 2,
             openai_api_key: localStorage.getItem("openai_api_key") || "",
             openai_api_base: localStorage.getItem("openai_api_base") || "",
-            exclude_sites_list_name: false,
+            excluded_sites_lists: "companies_profiles, vacations",
         },
     });
 
@@ -77,15 +77,25 @@ const CreateCsvForm = () => {
         setViewType(event.target.value as ViewType);
     }
 
-    const onTestSearchQuery: SubmitHandler<IFormInput> = async (payload_data): boolean => {
+    const onTestSearchQuery: SubmitHandler<IFormInput> = async (payload_data: IFormInput): boolean => {
         setLoading(true);
+
+        let excluded_sites: string[] = []
+        if (payload_data.excluded_sites_lists != "") {
+            excluded_sites = excluded_sites.concat(payload_data.excluded_sites_lists.split(", "))
+        }
+
+
         try {
             const resp = await fetch(`${import.meta.env.VITE_API_BASE_URL}/search_query`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json;charset=utf-8"
                 },
-                body: JSON.stringify({ search_query_template: payload_data.search_query_template })
+                body: JSON.stringify({
+                    search_query_template: payload_data.search_query_template,
+                    excluded_sites_lists: excluded_sites
+                })
             });
 
             const resp_data = await resp.json() as SearchQueryResponse;
@@ -130,7 +140,7 @@ const CreateCsvForm = () => {
             max_lead_count: payload_data.max_lead_count,
             openai_api_key: payload_data.openai_api_key,
             openai_api_base: payload_data.openai_api_base,
-            exclude_sites_list_name: payload_data.exclude_sites_list_name,
+            excluded_sites_lists: payload_data.excluded_sites_lists.split(", "),
         };
 
         const csvWs = new WebSocket(`${import.meta.env.VITE_API_BASE_URL_WS}/csv/progress`);
@@ -228,6 +238,18 @@ const CreateCsvForm = () => {
                                 />
                             }
                         />
+                        <Controller
+                            name="excluded_sites_lists"
+                            control={control}
+                            render={({field}) => (
+                                <TextField
+                                    {...field}
+                                    label="Исключить сайты"
+                                    type="text"
+                                    placeholder="companies_profiles, vacations"
+                                />
+                            )}
+                        />
                         <Box>
                             <LoadingButton
                                 loading={loading}
@@ -291,16 +313,6 @@ const CreateCsvForm = () => {
                             )}
                         />
                     </Box>
-                    <FormControlLabel
-                        control={
-                            <Controller
-                                name="exclude_sites_list_name"
-                                control={control}
-                                render={({field}) => <Checkbox {...field} />}
-                            />
-                        }
-                        label="Исключить сайты"
-                    />
                     <Box>
                         <LoadingButton
                             onClick={handleSubmit(onSubmitWs)}

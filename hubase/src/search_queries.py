@@ -17,7 +17,7 @@ class SearchQueries:
     __allowed_variables = {"{company}", "{site}", "{positions}", "{position}"}
 
     def __init__(self, template: str, companies: list[str], positions: list[str], sites: list[str],
-                 exclude_sites_list_name: bool) -> None:
+                 excluded_sites_lists: list[str]) -> None:
         self.__template = template
         self.__companies = companies
         self.__positions = positions
@@ -27,7 +27,7 @@ class SearchQueries:
         self.__is_singular_pos_in = "{position}" in self.__template
 
         self.__validate_template()
-        self.__exclude_sites_list_name = exclude_sites_list_name
+        self.__excluded_sites_lists = excluded_sites_lists
 
         if self.__is_plural_pos_in:
             self.__position_variable = "positions"
@@ -35,11 +35,13 @@ class SearchQueries:
             self.__position_variable = "position"
 
     def __get_exclusion_sites(self) -> list[str]:
-        if not self.__exclude_sites_list_name:
-            return []
+        excluded = []
 
-        with open(f"../sites/exclusion_sites_list_name.txt", "r") as file:
-            return file.readlines()
+        for name in self.__excluded_sites_lists:
+            with open(f"../sites/{name}.txt", "r") as file:
+                excluded.extend(file.readlines())
+
+        return excluded
 
     def compiled(self) -> t.Iterator[SearchQuery]:
         exclusion_sites = self.__get_exclusion_sites()
