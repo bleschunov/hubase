@@ -5,13 +5,16 @@ from src.main import decode_json
 
 class TestAbsFunction(unittest.TestCase):
     def test_decode_json_success(self):
-        test_data = '''{"results": [
+        test_data = """{"results": [
             {"name": "Наталия Черкасова", "position": "Директор по корпоративным финансам"},
             {"name": "Боб Дилан", "position": "Директор"}
-        ]}'''
+        ]}"""
         expected_result = [
-            {"name": "Наталия Черкасова", "position": "Директор по корпоративным финансам"},
-            {"name": "Боб Дилан", "position": "Директор"}
+            {
+                "name": "Наталия Черкасова",
+                "position": "Директор по корпоративным финансам",
+            },
+            {"name": "Боб Дилан", "position": "Директор"},
         ]
 
         actual_result = decode_json(test_data)

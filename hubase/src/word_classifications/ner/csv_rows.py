@@ -15,7 +15,7 @@ class NerCSVRows(HubaseIterator):
         company_prompt: Prompt,
         position_prompt: Prompt,
         url: str,
-        searching_params: dict[str, str]
+        searching_params: dict[str, str],
     ) -> None:
         self.__people = people
         self.__llm_qa = llm_qa
@@ -26,8 +26,16 @@ class NerCSVRows(HubaseIterator):
 
     def iter(self) -> t.Iterator[CSVRow]:
         for person in self.__people.iter():
-            inferenced_company = self.__llm_qa.ask(self.__company_prompt.get_and_compile(person=person.name, context=person.source))
-            inferenced_position = self.__llm_qa.ask(self.__position_prompt.get_and_compile(person=person.name, context=person.source))
+            inferenced_company = self.__llm_qa.ask(
+                self.__company_prompt.get_and_compile(
+                    person=person.name, context=person.source
+                )
+            )
+            inferenced_position = self.__llm_qa.ask(
+                self.__position_prompt.get_and_compile(
+                    person=person.name, context=person.source
+                )
+            )
             yield CSVRow(
                 name=person.name,
                 source=person.source,

@@ -13,15 +13,12 @@ from word_classifications.gpt.csv_rows import GPTCSVRows
 from word_classifications.gpt.people import GPTPeople
 
 
-def _main(
-        csv_options: CsvOptions,
-        logger: Logger
-) -> t.Iterator[CSVRow]:
+def _main(csv_options: CsvOptions, logger: Logger) -> t.Iterator[CSVRow]:
     search_queries = SearchQueries(
         csv_options.search_query_template,
         csv_options.companies,
         csv_options.positions,
-        csv_options.sites if csv_options.mode == "parser" else []
+        csv_options.sites if csv_options.mode == "parser" else [],
     )
 
     openai_api_key = (
@@ -32,18 +29,24 @@ def _main(
 
     openai_api_base = csv_options.openai_api_base or settings.openai_api_base
 
-    limit = csv_options.max_lead_count if csv_options.mode == "parser" else csv_options.max_sites_count
+    limit = (
+        csv_options.max_lead_count
+        if csv_options.mode == "parser"
+        else csv_options.max_sites_count
+    )
 
     lead_count = 0
     site_count = 0
 
     for url, searching_params in SearchPage(search_queries, logger).found():
         if (csv_options.mode == "parser" and lead_count >= limit) or (
-                csv_options.mode == "researcher" and site_count >= limit):
+            csv_options.mode == "researcher" and site_count >= limit
+        ):
             logger.info(
                 f"Достигнуто максимальное установленное количество "
                 f"{('лидов' if csv_options.mode == 'parser' else 'сайтов')}: "
-                f"{lead_count if csv_options.mode == 'parser' else site_count}.")
+                f"{lead_count if csv_options.mode == 'parser' else site_count}."
+            )
             break
 
         site_count += 1 if csv_options.mode == "researcher" else 0
@@ -65,18 +68,18 @@ def _main(
             prompt_template = fd.read()
 
         for lead in GPTCSVRows(
-                people=GPTPeople(
-                    text=md,
-                    prompt_template=prompt_template,
-                    api_key=openai_api_key.get_secret_value(),
-                    logger=logger,
-                    openai_api_base=openai_api_base,
-                    batch_size=512,
-                    mode=csv_options.mode,
-                    site_name=urlparse(url).netloc
-                ),
-                url=url,
-                searching_params=searching_params,
+            people=GPTPeople(
+                text=md,
+                prompt_template=prompt_template,
+                api_key=openai_api_key.get_secret_value(),
+                logger=logger,
+                openai_api_base=openai_api_base,
+                batch_size=512,
+                mode=csv_options.mode,
+                site_name=urlparse(url).netloc,
+            ),
+            url=url,
+            searching_params=searching_params,
         ).iter():
             yield lead
             lead_count += 1
@@ -99,10 +102,16 @@ def _main(
 
 
 def get_names_and_positions_csv(
-        csv_options: CsvOptions,
-        logger: Logger
+    csv_options: CsvOptions, logger: Logger
 ) -> str:
-    headers = ["name", "position", "searched_company", "inferenced_company", "original_url", "source"]
+    headers = [
+        "name",
+        "position",
+        "searched_company",
+        "inferenced_company",
+        "original_url",
+        "source",
+    ]
     with HubaseCsv(headers=headers, settings=settings) as csv_:
         for person in _main(csv_options, logger):
             csv_.persist(person)
@@ -110,15 +119,23 @@ def get_names_and_positions_csv(
 
 
 def get_names_and_positions_csv_with_progress(
-        csv_options: CsvOptions,
-        logger: Logger
+    csv_options: CsvOptions, logger: Logger
 ) -> t.Iterator[CSVRow | str]:
-    headers = ["name", "position", "searched_company", "inferenced_company", "original_url", "source"]
+    headers = [
+        "name",
+        "position",
+        "searched_company",
+        "inferenced_company",
+        "original_url",
+        "source",
+    ]
 
     with HubaseCsv(headers=headers, settings=settings) as csv_:
         yield csv_.download_url
 
-        for lead_count, person in enumerate(_main(csv_options, logger), start=1):
+        for lead_count, person in enumerate(
+            _main(csv_options, logger), start=1
+        ):
             csv_.persist(person)
             yield person
 

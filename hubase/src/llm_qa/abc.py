@@ -1,7 +1,5 @@
 import abc
 
-import requests
-
 
 class LLMClientQA(abc.ABC):
     @abc.abstractmethod
